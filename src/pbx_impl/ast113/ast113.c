@@ -489,7 +489,7 @@ static void pbx_retrieve_remote_capabilities(sccp_channel_t *c)
 	//! \todo handle multiple remotePeers i.e. DIAL(SCCP/400&SIP/300), find smallest common codecs, what order to use ?
 	PBX_CHANNEL_TYPE *remotePeer;
 
-	struct ast_format_cap *acaps = ast_format_cap_alloc(AST_FORMAT_CAP_FLAG_DEFAULT);
+	struct ast_format_cap *caps = ast_format_cap_alloc(AST_FORMAT_CAP_FLAG_DEFAULT);
 	if (!caps) {
 		return;
 	}
@@ -543,6 +543,7 @@ static void pbx_retrieve_remote_capabilities(sccp_channel_t *c)
 #ifdef CS_SCCP_VIDEO
 	// implement video version
 #endif
+	ao2_cleanup(caps);
 }
 
 static const char *asterisk_indication2str(int ind)
@@ -931,23 +932,27 @@ static int sccp_astwrap_rtp_write(PBX_CHANNEL_TYPE * ast, PBX_FRAME_TYPE * frame
 		case AST_FRAME_IMAGE:
 		case AST_FRAME_VIDEO:
 #ifdef CS_SCCP_VIDEO
-			if (c->rtp.video.receiveChannelState == SCCP_RTP_STATUS_INACTIVE && c->rtp.video.instance && c->state != SCCP_CHANNELSTATE_HOLD) {
-				// int codec = pbx_codec2skinny_codec((frame->subclass.codec & AST_FORMAT_VIDEO_MASK));
-				// int codec = pbx_codec2skinny_codec(frame->subclass.format.id);
-
-/*
-				if (ast_format_cmp(ast_format_h264, frame->subclass.format) == AST_FORMAT_CMP_EQUAL) {
-					sccp_log((DEBUGCAT_RTP)) (VERBOSE_PREFIX_3 "%s: got video frame %s\n", c->currentDeviceId, "H264");
-					c->rtp.video.writeFormat = SKINNY_CODEC_H264;
+			if (	c->rtp.video.instance) {
+				if (
+					c->state != SCCP_CHANNELSTATE_HOLD &&
+					c->rtp.video.receiveChannelState == SCCP_RTP_STATUS_INACTIVE &&
+					c->preferences.video[0] != SKINNY_CODEC_NONE
+					//c->rtp.video.writeFormat != SKINNY_CODEC_NONE
+				) {
+					/*
+					int codec = pbx_codec2skinny_codec((frame->subclass.codec & AST_FORMAT_VIDEO_MASK));
+					int codec = pbx_codec2skinny_codec(frame->subclass.format.id);
+					if (ast_format_cmp(ast_format_h264, frame->subclass.format) == AST_FORMAT_CMP_EQUAL) {
+						sccp_log((DEBUGCAT_RTP)) (VERBOSE_PREFIX_3 "%s: got video frame %s\n", c->currentDeviceId, "H264");
+						c->rtp.video.writeFormat = SKINNY_CODEC_H264;
+						sccp_channel_openMultiMediaReceiveChannel(c);
+					}
+					*/
+					sccp_log((DEBUGCAT_RTP)) (VERBOSE_PREFIX_3 "%s: got video frame %s -> openMultiMedia Stream\n", c->currentDeviceId, pbx_getformatname(frame->subclass.format));
 					sccp_channel_openMultiMediaReceiveChannel(c);
+				} else if ((c->rtp.video.receiveChannelState & SCCP_RTP_STATUS_ACTIVE) != 0) {
+					res = ast_rtp_instance_write(c->rtp.video.instance, frame);
 				}
-*/
-				sccp_log((DEBUGCAT_RTP)) (VERBOSE_PREFIX_3 "%s: got video frame %s\n", c->currentDeviceId, pbx_getformatname(frame->subclass.format));
-				sccp_channel_openMultiMediaReceiveChannel(c);
-			}
-
-			if (c->rtp.video.instance && (c->rtp.video.receiveChannelState & SCCP_RTP_STATUS_ACTIVE) != 0) {
-				res = ast_rtp_instance_write(c->rtp.video.instance, frame);
 			}
 #endif
 			break;
@@ -1183,6 +1188,9 @@ static boolean_t sccp_astwrap_allocPBXChannel(sccp_channel_t * channel, const vo
 				return FALSE;
 			}
 			pbx_format_cap_append_skinny(caps, channel->preferences.audio);
+#ifdef CS_SCCP_VIDEO
+			pbx_format_cap_append_skinny(caps, channel->preferences.video);
+#endif
 
 			sccp_log(DEBUGCAT_CODEC)(VERBOSE_PREFIX_3 "allocPBXChannel: new->nativeformats=%s based on audio preferences\n", ast_format_cap_get_names(caps, &codec_buf));
 
@@ -1195,6 +1203,9 @@ static boolean_t sccp_astwrap_allocPBXChannel(sccp_channel_t * channel, const vo
 			if (ast_format_cap_count(joint) > 0) {
 				if (!ast_translator_best_choice(caps, joint, &best_fmt_cap, &best_fmt_native)) {
 					ast_format_cap_remove_by_type(caps, AST_MEDIA_TYPE_AUDIO);	// clear caps
+#ifdef CS_SCCP_VIDEO
+					ast_format_cap_remove_by_type(caps, AST_MEDIA_TYPE_VIDEO);	// clear caps
+#endif
 					ast_format_cap_append(caps, best_fmt_native, 0);		// insert best first
 					pbx_format_cap_append_skinny(caps, channel->preferences.audio); // re-add rest
 #ifdef CS_SCCP_VIDEO
@@ -1217,7 +1228,9 @@ static boolean_t sccp_astwrap_allocPBXChannel(sccp_channel_t * channel, const vo
 		ast_channel_nativeformats_set(pbxDstChannel, caps);
 	} else {
 		ast_format_cap_append_from_cap(caps, (&sccp_tech)->capabilities, AST_MEDIA_TYPE_AUDIO);
+#ifdef CS_SCCP_VIDEO
 		ast_format_cap_append_from_cap(caps, (&sccp_tech)->capabilities, AST_MEDIA_TYPE_VIDEO);
+#endif
 		ast_channel_nativeformats_set(pbxDstChannel, caps);
 	}
 	if (ast_format_cap_count(caps) == 0) {
