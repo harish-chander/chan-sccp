@@ -475,8 +475,10 @@ static int pbx_find_channel_by_linkid(PBX_CHANNEL_TYPE * ast, PBX_CHANNEL_TYPE *
 	return remotePeer != ast && remoteLinkedId && (!strcasecmp(linkedId, remoteLinkedId)) && !pbx_channel_masq(remotePeer);
 }
 
+/*! Todo: Use a generic helper function to reduce code duplication */
 static void pbx_retrieve_remote_capabilities(sccp_channel_t *c)
 {
+
 	pbx_assert(c != NULL);
 	PBX_CHANNEL_TYPE *ast = c->owner;
 
@@ -487,7 +489,7 @@ static void pbx_retrieve_remote_capabilities(sccp_channel_t *c)
 	//! \todo handle multiple remotePeers i.e. DIAL(SCCP/400&SIP/300), find smallest common codecs, what order to use ?
 	PBX_CHANNEL_TYPE *remotePeer;
 
-	struct ast_format_cap *caps = ast_format_cap_alloc(AST_FORMAT_CAP_FLAG_DEFAULT);
+	struct ast_format_cap *acaps = ast_format_cap_alloc(AST_FORMAT_CAP_FLAG_DEFAULT);
 	if (!caps) {
 		return;
 	}
@@ -534,13 +536,13 @@ static void pbx_retrieve_remote_capabilities(sccp_channel_t *c)
 			sccp_astwrap_getSkinnyFormatMultiple(ast_channel_nativeformats(c->owner), c->preferences.audio, ARRAY_LEN(c->preferences.audio));
 			sccp_codec_multiple2str(buf, sizeof(buf) - 1, c->preferences.audio, ARRAY_LEN(c->preferences.audio));
 			sccp_log(DEBUGCAT_CODEC) (VERBOSE_PREFIX_4 "new native formats: %s\n", buf);
-
 			ast_channel_unref(remotePeer);
 			break;
 		}
 	}
-	ast_channel_iterator_destroy(iterator);
-	ao2_cleanup(caps);
+#ifdef CS_SCCP_VIDEO
+	// implement video version
+#endif
 }
 
 static const char *asterisk_indication2str(int ind)
