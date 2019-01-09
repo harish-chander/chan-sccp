@@ -600,7 +600,7 @@ static void sccp_protocol_sendOpenReceiveChannelV17(constDevicePtr device, const
 
 		memcpy(&msg->data.OpenReceiveChannel.v17.bel_remoteIpAddr, &in6->sin6_addr, 16);
 		msg->data.OpenReceiveChannel.v17.lel_ipv46 = htolel(1);
-		msg->data.OpenReceiveChannel.v17.lel_requestedIpAddrType = htolel(1);				//for ipv6 this value have to me > 0, lel_ipv46 doesn't matter
+		msg->data.OpenReceiveChannel.v17.lel_requestedIpAddrType = htolel(SKINNY_IPADDR_IPV6);				//for ipv6 this value have to me > 0, lel_ipv46 doesn't matter
 	} else {
 		struct sockaddr_in *in = (struct sockaddr_in *) &sas;
 
@@ -643,7 +643,7 @@ static void sccp_protocol_sendOpenReceiveChannelv22(constDevicePtr device, const
 
 		memcpy(&msg->data.OpenReceiveChannel.v22.bel_remoteIpAddr, &in6->sin6_addr, 16);
 		msg->data.OpenReceiveChannel.v22.lel_ipv46 = htolel(1);						//for ipv6 this value have to me > 0, lel_ipv46 doesn't matter
-		msg->data.OpenReceiveChannel.v22.lel_requestedIpAddrType = htolel(1);
+		msg->data.OpenReceiveChannel.v22.lel_requestedIpAddrType = htolel(SKINNY_IPADDR_IPV6);
 	} else {
 		struct sockaddr_in *in = (struct sockaddr_in *) &sas;
 
@@ -726,7 +726,7 @@ static void sccp_protocol_sendOpenMultiMediaChannelV3(constDevicePtr device, con
 /*!
  * \brief Send Open MultiMediaChannel Message (V12)
  */
-static void sccp_protocol_sendOpenMultiMediaChannelV12(constDevicePtr device, constChannelPtr channel, uint32_t skinnyFormat, int payloadType, uint8_t lineInstance, int bitRate)
+static void sccp_protocol_sendOpenMultiMediaChannelV12(constDevicePtr device, constChannelPtr channel, skinny_codec_t skinnyFormat, int payloadType, uint8_t lineInstance, int bitRate)
 {
 	sccp_msg_t *msg = sccp_build_packet(OpenMultiMediaChannelMessage, sizeof(msg->data.OpenMultiMediaChannelMessage.v12));
 
