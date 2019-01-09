@@ -641,7 +641,7 @@ static void pbx_retrieve_remote_capabilities(sccp_channel_t *c)
 
 	//! \todo handle multiple remotePeers i.e. DIAL(SCCP/400&SIP/300), find smallest common codecs, what order to use ?
 	for (; (remotePeer = ast_channel_iterator_next(iterator)); ast_channel_unref(remotePeer)) {
-		if (pbx_find_channel_by_linkid(remotePeer, (void *) ast_channel_linkedid(ast))) {
+		if (pbx_find_channel_by_linkid(ast, remotePeer, (void *)ast_channel_linkedid(ast))) {
 			pbx_str_t *codec_buf = pbx_str_alloca(64);
 			sccp_log(DEBUGCAT_CODEC) (VERBOSE_PREFIX_4 "%s: remote peer native caps:%s\n", c->designator, ast_format_cap_get_names(ast_channel_nativeformats(remotePeer), &codec_buf));
 			//sccp_log(DEBUGCAT_CODEC) (VERBOSE_PREFIX_4 "%s: my native caps:%s\n", c->designator, ast_format_cap_get_names(ast_channel_nativeformats(c->owner), &codec_buf));
