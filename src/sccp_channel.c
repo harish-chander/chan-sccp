@@ -202,6 +202,7 @@ channelPtr sccp_channel_allocate(constLinePtr l, constDevicePtr device)
 				memcpy(&channel->capabilities.video, &device->capabilities.video, sizeof channel->capabilities.video);
 			}
 		}
+		channel->videomode = l->videomode;
 
 		/* run setters */
 		sccp_line_addChannel(l, channel);
@@ -979,6 +980,7 @@ void sccp_channel_openMultiMediaReceiveChannel(constChannelPtr channel)
 
 	if (!video->instance && !sccp_rtp_createServer(d, (channelPtr)channel, SCCP_RTP_VIDEO)) {		// discard const
 		pbx_log(LOG_WARNING, "%s: Could not start vrtp on device:%s. returning\n", channel->designator, d->id);
+		sccp_channel_setVideoMode((channelPtr)channel, "off");						// discard const
 		return;
 	}
 
@@ -988,7 +990,7 @@ void sccp_channel_openMultiMediaReceiveChannel(constChannelPtr channel)
 
 	if (SKINNY_CODEC_NONE == video->writeFormat) {
 		pbx_log(LOG_WARNING, "%s: (openMultiMediaReceiveChannel) No joint codecs found. Switching video off && returning.\n", d->id);
-		((sccp_channel_t *)channel)->videomode = SCCP_VIDEO_MODE_OFF;						// discard const
+		sccp_channel_setVideoMode((channelPtr)channel, "off");						// discard const
 		return;
 	}
 
@@ -1000,6 +1002,7 @@ void sccp_channel_openMultiMediaReceiveChannel(constChannelPtr channel)
 
 	if (skinnyFormat == 0) {
 		pbx_log(LOG_NOTICE, "SCCP: Unable to find skinny format for %d\n", video->writeFormat);
+		sccp_channel_setVideoMode((channelPtr)channel, "off");						// discard const
 		return;
 	}
 
@@ -1075,6 +1078,7 @@ void sccp_channel_closeMultiMediaReceiveChannel(constChannelPtr channel, boolean
 		return;
 	}
 	// stop transmitting before closing receivechannel (\note maybe we should not be doing this here)
+	sccp_channel_setVideoMode((channelPtr)channel, "off");						// discard const
 	sccp_channel_stopMediaTransmission(channel, KeepPortOpen);
 
 	sccp_rtp_t *video = (sccp_rtp_t *) &(channel->rtp.video);
@@ -1128,6 +1132,7 @@ void sccp_channel_startMultiMediaTransmission(constChannelPtr channel)
 	sccp_rtp_t *video = (sccp_rtp_t *) &(channel->rtp.video);
 	if (!video->instance) {
 		sccp_log((DEBUGCAT_RTP)) (VERBOSE_PREFIX_3 "%s: can't start vrtp media transmission, maybe channel is down %s\n", channel->currentDeviceId, channel->designator);
+		sccp_channel_setVideoMode((channelPtr)channel, "off");						// discard const
 		return;
 	}
 	if (d->nat >= SCCP_NAT_ON) {										/* device is natted */
@@ -1155,6 +1160,7 @@ void sccp_channel_startMultiMediaTransmission(constChannelPtr channel)
 
 int sccp_channel_multiMediaTransmissionStarted(sccp_device_t *d, sccp_channel_t *c)
 {
+	pbx_builtin_setvar_helper(c->owner, "_SCCP_VIDEO_MODE", sccp_video_mode2str(c->videomode));
 	return -1;
 }
 
@@ -2719,21 +2725,31 @@ boolean_t sccp_channel_setPreferredCodec(sccp_channel_t * c, const char *data)
 }
 
 boolean_t sccp_channel_setVideoMode(sccp_channel_t * c, const char *data){
-	boolean_t res = TRUE;
-	
+	boolean_t res = FALSE;
 #if CS_SCCP_VIDEO
-	if (!strcasecmp(data, "off")) {
-		c->videomode = SCCP_VIDEO_MODE_OFF;
-	} else if (!strcasecmp(data, "user")) {
-		c->videomode = SCCP_VIDEO_MODE_USER;
-	} else if (!strcasecmp(data, "auto")) {
-		c->videomode = SCCP_VIDEO_MODE_AUTO;
-	} else 
+	sccp_video_mode_t newval = c->videomode = sccp_video_mode_str2val(data);
+	if (newval == SCCP_VIDEO_MODE_SENTINEL) {
+		return res;
+	}
+	if (c) {
+		c->videomode = newval;
+		if (c->videomode == SCCP_VIDEO_MODE_AUTO) {
+			if (!c->rtp.video.instance || SCCP_RTP_STATUS_INACTIVE == c->rtp.video.receiveChannelState) {
+				sccp_channel_openMultiMediaReceiveChannel(c);
+			}
+			if ((c->rtp.video.receiveChannelState & SCCP_RTP_STATUS_ACTIVE) && SCCP_RTP_STATUS_INACTIVE == c->rtp.video.mediaTransmissionState) {
+				sccp_channel_startMultiMediaTransmission(c);
+			}
+		}
+		if (c->owner) {
+			pbx_builtin_setvar_helper(c->owner, "_SCCP_VIDEO_MODE", sccp_video_mode2str(c->videomode));
+		}
+		return TRUE;
+	}
 #endif
 	{
-		res = FALSE;
+		return res;
 	}
-	return res;
 }
 
 /*!

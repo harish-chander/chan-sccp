@@ -1037,8 +1037,6 @@ uint8_t sccp_dev_build_buttontemplate(devicePtr d, btnlist * btn)
 			break;
 		case SKINNY_DEVICETYPE_CISCO7985:
 #ifdef CS_SCCP_VIDEO
-			//d->capabilities.video[0] = SKINNY_CODEC_H264;
-			//d->capabilities.video[1] = SKINNY_CODEC_H263;
 			sccp_softkey_setSoftkeyState(d, KEYMODE_CONNTRANS, SKINNY_LBL_VIDEO_MODE, TRUE);
 #endif
 			for (i = 0; i < 1; i++) {
@@ -1075,8 +1073,6 @@ uint8_t sccp_dev_build_buttontemplate(devicePtr d, btnlist * btn)
 		case SKINNY_DEVICETYPE_CISCO8941:
 		case SKINNY_DEVICETYPE_CISCO8945:
 #ifdef CS_SCCP_VIDEO
-			//d->capabilities.video[0] = SKINNY_CODEC_H264;
-			//d->capabilities.video[1] = SKINNY_CODEC_H263;
 			sccp_softkey_setSoftkeyState(d, KEYMODE_CONNTRANS, SKINNY_LBL_VIDEO_MODE, TRUE);
 #endif
 			d->pushTextMessage = sccp_device_pushTextMessage;
@@ -1352,9 +1348,10 @@ void sccp_dev_set_keyset(constDevicePtr d, uint8_t lineInstance, uint32_t callid
 		if (softKeySetIndex == KEYMODE_CONNECTED) {
 			softKeySetIndex = (
 #if CS_SCCP_CONFERENCE
-						  (d->conference) ? KEYMODE_CONNCONF :
+						(d->conference) ? KEYMODE_CONNCONF :
 #endif
-						  (d->transfer) ? KEYMODE_CONNTRANS : KEYMODE_CONNECTED);
+						(d->transfer) ? KEYMODE_CONNTRANS : KEYMODE_CONNECTED
+					  );
 		}
 	}
 	REQ(msg, SelectSoftKeysMessage);

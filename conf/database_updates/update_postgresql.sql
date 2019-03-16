@@ -37,6 +37,7 @@ ALTER TABLE sccpline ADD COLUMN allow varchar(45) default NULL;
 ALTER TABLE sccpline ADD COLUMN directed_pickup VARCHAR(5) NULL DEFAULT 'on';
 ALTER TABLE sccpline ADD COLUMN directed_pickup_context VARCHAR(100) NULL DEFAULT NULL;
 ALTER TABLE sccpline ADD COLUMN pickup_modeanswer VARCHAR(5) NULL DEFAULT 'on';
+ALTER TABLE sccpline ADD COLUMN videomode varchar(5) DEFAULT 'auto';
 
 update sccpline
 set

@@ -4295,12 +4295,14 @@ void handle_updatecapabilities_message(constSessionPtr s, devicePtr d, constMess
 			}
 			sccp_codec_reduceSet(d->preferences.video , d->capabilities.video);
 			sccp_softkey_setSoftkeyState(d, KEYMODE_CONNTRANS, SKINNY_LBL_VIDEO_MODE, TRUE);
+			sccp_softkey_setSoftkeyState(d, KEYMODE_CONNECTED, SKINNY_LBL_VIDEO_MODE, TRUE);
 			if (previousVideoSupport == FALSE) {
 				sccp_dev_set_message(d, "Video support enabled", 5, FALSE, FALSE);
 			}
 		} else {
 			d->capabilities.video[0] = SKINNY_CODEC_NONE;
 			sccp_softkey_setSoftkeyState(d, KEYMODE_CONNTRANS, SKINNY_LBL_VIDEO_MODE, FALSE);
+			sccp_softkey_setSoftkeyState(d, KEYMODE_CONNECTED, SKINNY_LBL_VIDEO_MODE, FALSE);
 			sccp_log((DEBUGCAT_CORE + DEBUGCAT_SOFTKEY)) (VERBOSE_PREFIX_3 "%s: disable video mode softkey\n", DEV_ID_LOG(d));
 			if (previousVideoSupport == TRUE) {
 				sccp_dev_set_message(d, "Video support disabled", 5, FALSE, FALSE);
@@ -4389,12 +4391,14 @@ void handle_updatecapabilities_V2_message(constSessionPtr s, devicePtr d, constM
 		}
 		sccp_codec_reduceSet(d->preferences.video , d->capabilities.video);
 		sccp_softkey_setSoftkeyState(d, KEYMODE_CONNTRANS, SKINNY_LBL_VIDEO_MODE, TRUE);
+		sccp_softkey_setSoftkeyState(d, KEYMODE_CONNECTED, SKINNY_LBL_VIDEO_MODE, TRUE);
 		if (previousVideoSupport == FALSE) {
 			sccp_dev_set_message(d, "Video support enabled", 5, FALSE, FALSE);
 		}
 	} else {
 		d->capabilities.video[0] = SKINNY_CODEC_NONE;
 		sccp_softkey_setSoftkeyState(d, KEYMODE_CONNTRANS, SKINNY_LBL_VIDEO_MODE, FALSE);
+		sccp_softkey_setSoftkeyState(d, KEYMODE_CONNECTED, SKINNY_LBL_VIDEO_MODE, FALSE);
 		sccp_log((DEBUGCAT_CORE + DEBUGCAT_SOFTKEY)) (VERBOSE_PREFIX_3 "%s: disable video mode softkey\n", DEV_ID_LOG(d));
 		if (previousVideoSupport == TRUE) {
 			sccp_dev_set_message(d, "Video support disabled", 5, FALSE, FALSE);
@@ -4490,12 +4494,14 @@ void handle_updatecapabilities_V3_message(constSessionPtr s, devicePtr d, constM
 		}
 		sccp_codec_reduceSet(d->preferences.video , d->capabilities.video);
 		sccp_softkey_setSoftkeyState(d, KEYMODE_CONNTRANS, SKINNY_LBL_VIDEO_MODE, TRUE);
+		sccp_softkey_setSoftkeyState(d, KEYMODE_CONNECTED, SKINNY_LBL_VIDEO_MODE, TRUE);
 		if (previousVideoSupport == FALSE) {
 			sccp_dev_set_message(d, "Video support enabled", 5, FALSE, FALSE);
 		}
 	} else {
 		d->capabilities.video[0] = SKINNY_CODEC_NONE;
 		sccp_softkey_setSoftkeyState(d, KEYMODE_CONNTRANS, SKINNY_LBL_VIDEO_MODE, FALSE);
+		sccp_softkey_setSoftkeyState(d, KEYMODE_CONNECTED, SKINNY_LBL_VIDEO_MODE, FALSE);
 		sccp_log((DEBUGCAT_CORE + DEBUGCAT_SOFTKEY)) (VERBOSE_PREFIX_3 "%s: disable video mode softkey\n", DEV_ID_LOG(d));
 		if (previousVideoSupport == TRUE) {
 			sccp_dev_set_message(d, "Video support disabled", 5, FALSE, FALSE);
