@@ -131,14 +131,15 @@ static void sccp_sk_dial(const sccp_softkeyMap_cb_t * const softkeyMap_cb, const
 static void sccp_sk_videomode(const sccp_softkeyMap_cb_t * const softkeyMap_cb, constDevicePtr d, constLinePtr l, const uint32_t lineInstance, channelPtr c)
 {
 #ifdef CS_SCCP_VIDEO
-	if (sccp_device_isVideoSupported(d)) {
+	if (sccp_device_isVideoSupported(d) && c->preferences.video[0] != SKINNY_CODEC_NONE) {
 		sccp_log((DEBUGCAT_RTP)) (VERBOSE_PREFIX_3 "%s: We can have video, try to start vrtp\n", DEV_ID_LOG(d));
-		if (!c->rtp.video.instance && !sccp_rtp_createServer(d, c, SCCP_RTP_VIDEO)) {
-			sccp_log((DEBUGCAT_RTP)) (VERBOSE_PREFIX_3 "%s: can not start vrtp\n", DEV_ID_LOG(d));
-		} else {
-			sccp_log((DEBUGCAT_RTP)) (VERBOSE_PREFIX_3 "%s: vrtp started\n", DEV_ID_LOG(d));
+		if (!c->rtp.video.instance || SCCP_RTP_STATUS_INACTIVE == c->rtp.video.receiveChannelState) {
+			sccp_channel_openMultiMediaReceiveChannel(c);
+		}
+		if ((c->rtp.video.receiveChannelState & SCCP_RTP_STATUS_ACTIVE) && SCCP_RTP_STATUS_INACTIVE == c->rtp.video.mediaTransmissionState) {
 			sccp_channel_startMultiMediaTransmission(c);
 		}
+		c->videomode = SCCP_VIDEO_MODE_USER;
 	}
 #endif
 }
