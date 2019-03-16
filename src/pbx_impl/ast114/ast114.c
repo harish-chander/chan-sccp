@@ -1007,7 +1007,7 @@ static void sccp_astwrap_setCalleridPresentation(PBX_CHANNEL_TYPE *pbx_channel, 
 	}
 }
 
-static int sccp_astwrap_setNativeAudioFormats(constChannelPtr channel, skinny_codec_t codecs[], int length)
+static int sccp_astwrap_setNativeAudioFormats(constChannelPtr channel, skinny_codec_t codecs[])
 {
 	if (!channel || !channel->owner || !ast_channel_nativeformats(channel->owner)) {
 		pbx_log(LOG_ERROR, "SCCP: (setNativeAudioFormats) no channel provided!\n");
@@ -1033,10 +1033,10 @@ static int sccp_astwrap_setNativeAudioFormats(constChannelPtr channel, skinny_co
 	return 1;
 }
 
-static int sccp_astwrap_setNativeVideoFormats(constChannelPtr channel, skinny_codec_t codec)
+static int sccp_astwrap_setNativeVideoFormats(constChannelPtr channel, skinny_codec_t codecs[])
 {
 	if (!channel || !channel->owner || !ast_channel_nativeformats(channel->owner)) {
-		pbx_log(LOG_ERROR, "SCCP: (setNativeAudioFormats) no channel provided!\n");
+		pbx_log(LOG_ERROR, "SCCP: (setNativeVideoFormats) no channel provided!\n");
 		return 0;
 	}
 	PBX_CHANNEL_TYPE *ast = channel->owner;
@@ -1046,10 +1046,7 @@ static int sccp_astwrap_setNativeVideoFormats(constChannelPtr channel, skinny_co
         	return 0;
 	}
 	ast_format_cap_append_from_cap(caps, ast_channel_nativeformats(ast), AST_MEDIA_TYPE_UNKNOWN);
-	ast_format_cap_remove_by_type(caps, AST_MEDIA_TYPE_VIDEO);
-	// temp
-	skinny_codec_t codecs[SKINNY_MAX_CAPABILITIES] = {codec, SKINNY_CODEC_NONE};
-	// end temp
+	ast_format_cap_remove_by_type(caps, AST_MEDIA_TYPE_AUDIO);
 	pbx_format_cap_append_skinny(caps, codecs);
 	
 	ast_channel_lock(ast);
@@ -1059,7 +1056,6 @@ static int sccp_astwrap_setNativeVideoFormats(constChannelPtr channel, skinny_co
 
 	pbx_str_t *codec_buf = pbx_str_alloca(AST_FORMAT_CAP_NAMES_LEN);
 	sccp_log((DEBUGCAT_RTP | DEBUGCAT_CODEC)) (VERBOSE_PREFIX_3 "%s: (setNativeVideoFormats) %s\n", channel->designator, ast_format_cap_get_names(ast_channel_nativeformats(ast), &codec_buf));
-
 	return 1;
 }
 
@@ -1819,7 +1815,7 @@ static PBX_CHANNEL_TYPE *sccp_astwrap_request(const char *type, struct ast_forma
 	*/
 	if (!channel->capabilities.audio[0]) {
 		skinny_codec_t codecs[SKINNY_MAX_CAPABILITIES] = { SKINNY_CODEC_WIDEBAND_256K, SKINNY_CODEC_NONE};
-		sccp_astwrap_setNativeAudioFormats(channel, codecs, 1);
+		sccp_astwrap_setNativeAudioFormats(channel, codecs);
 		sccp_astwrap_setReadFormat(channel, SKINNY_CODEC_WIDEBAND_256K);
 		sccp_astwrap_setWriteFormat(channel, SKINNY_CODEC_WIDEBAND_256K);
 	}
