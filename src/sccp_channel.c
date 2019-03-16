@@ -1006,8 +1006,8 @@ void sccp_channel_openMultiMediaReceiveChannel(constChannelPtr channel)
 	payloadType = sccp_rtp_get_payloadType(&channel->rtp.video, video->writeFormat);
 	lineInstance = sccp_device_find_index_for_line(d, channel->line->name);
 
-	sccp_log((DEBUGCAT_RTP)) (VERBOSE_PREFIX_3 "%s: Open receive multimedia channel with format %s[%d] skinnyFormat %s[%d], payload %d\n", d->id,
-		codec2str(video->writeFormat), video->writeFormat, codec2str(skinnyFormat), skinnyFormat, payloadType);
+	sccp_log((DEBUGCAT_RTP)) (VERBOSE_PREFIX_3 "%s: Open receive multimedia channel with format %s[%d], payload %d\n", d->id,
+		codec2str(video->writeFormat), video->writeFormat, payloadType);
 	d->protocol->sendOpenMultiMediaChannel(d, channel, skinnyFormat, payloadType, lineInstance, bitRate);
 }
 
@@ -1147,7 +1147,8 @@ void sccp_channel_startMultiMediaTransmission(constChannelPtr channel)
 	sccp_copy_string(buf2, sccp_netsock_stringify(&video->phone_remote), sizeof(buf2));
 	sccp_log(DEBUGCAT_RTP) (VERBOSE_PREFIX_3 "%s: (startMultiMediaTransmission) Tell Phone to send VRTP/UDP media from %s to %s (NAT: %s)\n", d->id, buf1, buf2, sccp_nat2str(d->nat));
 
-	sccp_log(DEBUGCAT_RTP) (VERBOSE_PREFIX_3 "%s: (StartMultiMediaTransmission) Using codec: %s(%d), TOS %d for call with PassThruId: %u and CallID: %u\n", d->id, codec2str(video->readFormat), video->readFormat, d->video_tos, channel->passthrupartyid, channel->callid);
+	sccp_log(DEBUGCAT_RTP) (VERBOSE_PREFIX_3 "%s: (StartMultiMediaTransmission) Using format: %s(%d), payload:%d, TOS %d for call with PassThruId: %u and CallID: %u\n", d->id,
+		codec2str(video->readFormat), video->readFormat, payloadType, d->video_tos, channel->passthrupartyid, channel->callid);
 
 	iPbx.queue_control(channel->owner, AST_CONTROL_VIDUPDATE);
 }

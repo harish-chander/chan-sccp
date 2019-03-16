@@ -790,7 +790,6 @@ boolean_t sccp_pbx_channel_allocate(sccp_channel_t * channel, const void *ids, c
 	sccp_log((DEBUGCAT_PBX + DEBUGCAT_CHANNEL)) (VERBOSE_PREFIX_3 "SCCP: combined audio caps: \"%s\"\n", sccp_codec_multiple2str(s1, sizeof(s1) - 1, c->capabilities.audio, SKINNY_MAX_CAPABILITIES));
 	sccp_log((DEBUGCAT_PBX + DEBUGCAT_CHANNEL)) (VERBOSE_PREFIX_3 "SCCP: reduced audio prefs: \"%s\"\n", sccp_codec_multiple2str(s1, sizeof(s1) - 1, c->preferences.audio, SKINNY_MAX_CAPABILITIES));
 #if CS_SCCP_VIDEO
-	sccp_log((DEBUGCAT_PBX + DEBUGCAT_CHANNEL)) (VERBOSE_PREFIX_3 "SCCP: line video prefs: \"%s\"\n", sccp_codec_multiple2str(s1, sizeof(s1) - 1, l->preferences.video, SKINNY_MAX_CAPABILITIES));
 	sccp_log((DEBUGCAT_PBX + DEBUGCAT_CHANNEL)) (VERBOSE_PREFIX_3 "SCCP: combined video caps: \"%s\"\n", sccp_codec_multiple2str(s1, sizeof(s1) - 1, c->capabilities.video, SKINNY_MAX_CAPABILITIES));
 	sccp_log((DEBUGCAT_PBX + DEBUGCAT_CHANNEL)) (VERBOSE_PREFIX_3 "SCCP: reduced video prefs: \"%s\"\n", sccp_codec_multiple2str(s1, sizeof(s1) - 1, c->preferences.video, SKINNY_MAX_CAPABILITIES));
 #endif

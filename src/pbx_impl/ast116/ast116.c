@@ -1151,7 +1151,9 @@ static boolean_t sccp_astwrap_allocPBXChannel(sccp_channel_t * channel, const vo
 				return FALSE;
 			}
 			pbx_format_cap_append_skinny(caps, channel->preferences.audio);
-
+#if CS_SCCP_VIDEO
+			pbx_format_cap_append_skinny(caps, channel->preferences.video);
+#endif
 			sccp_log(DEBUGCAT_CODEC)(VERBOSE_PREFIX_3 "allocPBXChannel: new->nativeformats=%s based on audio preferences\n", ast_format_cap_get_names(caps, &codec_buf));
 
 			struct ast_format *best_fmt_cap = NULL;
@@ -1163,6 +1165,9 @@ static boolean_t sccp_astwrap_allocPBXChannel(sccp_channel_t * channel, const vo
 			if (ast_format_cap_count(joint) > 0) {
 				if (!ast_translator_best_choice(caps, joint, &best_fmt_cap, &best_fmt_native)) {
 					ast_format_cap_remove_by_type(caps, AST_MEDIA_TYPE_AUDIO);	// clear caps
+#ifdef CS_SCCP_VIDEO
+					ast_format_cap_remove_by_type(caps, AST_MEDIA_TYPE_VIDEO);	// clear caps
+#endif
 					ast_format_cap_append(caps, best_fmt_native, 0);		// insert best first
 					pbx_format_cap_append_skinny(caps, channel->preferences.audio); // re-add rest
 #ifdef CS_SCCP_VIDEO
@@ -1516,7 +1521,8 @@ static uint8_t sccp_astwrap_get_payloadType(const struct sccp_rtp *rtp, skinny_c
 	struct ast_format *astCodec = sccp_astwrap_skinny2ast_format(codec);
 	if (astCodec != ast_format_none) {
 		//return ast_rtp_codecs_payload_code(ast_rtp_instance_get_codecs(rtp->instance), skinny_codec2pbx_codec(codec), astCodec, 0);
-		return ast_rtp_codecs_payload_code(ast_rtp_instance_get_codecs(rtp->instance), 0, astCodec, 0);
+		//return ast_rtp_codecs_payload_code(ast_rtp_instance_get_codecs(rtp->instance), 0, astCodec, 0);
+		return ast_rtp_codecs_payload_code(ast_rtp_instance_get_codecs(rtp->instance), 1, astCodec, 0);
 	}
 	return 0;
 }
@@ -2439,6 +2445,7 @@ static boolean_t sccp_astwrap_createRtpInstance(constDevicePtr d, constChannelPt
  		}
 		ast_rtp_codecs_payload_replace_format(ast_rtp_instance_get_codecs(instance), 25, ast_format_slin16);				// replace slin16 RTPPayloadType=25 (wideband-256)
 	}
+
 	ast_rtp_codecs_set_framing(ast_rtp_instance_get_codecs(instance), ast_format_cap_get_framing(ast_channel_nativeformats(c->owner)));
 	ast_rtp_instance_activate(instance);
 
