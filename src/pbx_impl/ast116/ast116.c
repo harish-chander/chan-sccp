@@ -121,13 +121,15 @@ static inline skinny_codec_t sccp_astwrap_getSkinnyFormatSingle(struct ast_forma
 	return codec;
 }
 
-static uint8_t sccp_astwrap_getSkinnyFormatMultiple(struct ast_format_cap *ast_format_capability, skinny_codec_t codec[], int length)
+static uint8_t sccp_astwrap_getSkinnyFormatMultiple(struct ast_format_cap *ast_format_capability, skinny_codec_t codecs[], int length)
 {
 	// struct ast_format tmp_fmt;
 	uint formatPosition;
 	skinny_codec_t found = SKINNY_CODEC_NONE;
 	uint8_t position = 0;
 	struct ast_format *format;
+	
+	memset(codecs, 0, length * sizeof(skinny_codec_t));
 
 	//pbx_str_t *codec_buf = pbx_str_alloca(64);
 	//sccp_log(DEBUGCAT_CODEC)(VERBOSE_PREFIX_3 "SCCP: (getSkinnyFormatMultiple) caps %s\n", ast_format_cap_get_names(ast_format_capability,&codec_buf));
@@ -137,11 +139,11 @@ static uint8_t sccp_astwrap_getSkinnyFormatMultiple(struct ast_format_cap *ast_f
 		ao2_ref(format, -1);
 
 		if ((found = pbx_codec2skinny_codec(ast_codec)) != SKINNY_CODEC_NONE) {
-			codec[position++] = found;
+			codecs[position++] = found;
 		}
 	}
 
-	if (codec[0] == SKINNY_CODEC_NONE) {
+	if (codecs[0] == SKINNY_CODEC_NONE) {
 		ast_log(LOG_WARNING, "SCCP: (getSkinnyFormatSingle) No matching codecs found");
 	}
 
@@ -1574,8 +1576,6 @@ static uint8_t sccp_astwrap_get_payloadType(const struct sccp_rtp *rtp, skinny_c
 {
 	struct ast_format *astCodec = sccp_astwrap_skinny2ast_format(codec);
 	if (astCodec != ast_format_none) {
-		//return ast_rtp_codecs_payload_code(ast_rtp_instance_get_codecs(rtp->instance), skinny_codec2pbx_codec(codec), astCodec, 0);
-		//return ast_rtp_codecs_payload_code(ast_rtp_instance_get_codecs(rtp->instance), 0, astCodec, 0);
 		return ast_rtp_codecs_payload_code(ast_rtp_instance_get_codecs(rtp->instance), 1, astCodec, 0);
 	}
 	return 0;
