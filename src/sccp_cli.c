@@ -1684,7 +1684,7 @@ static int sccp_test(int fd, int argc, char *argv[])
 				msg1->data.OpenReceiveChannel.v17.lel_conferenceId = htolel(tmpChannel->callid);
 				msg1->data.OpenReceiveChannel.v17.lel_passThruPartyId = htolel(tmpChannel->passthrupartyid);
 				msg1->data.OpenReceiveChannel.v17.lel_millisecondPacketSize = htolel(packetSize);
-				msg1->data.OpenReceiveChannel.v17.lel_payloadType = htolel(8);
+				msg1->data.OpenReceiveChannel.v17.lel_codecType = (skinny_codec_t)htolel(8);
 				msg1->data.OpenReceiveChannel.v17.lel_vadValue = htolel(tmpChannel->line->echocancel);
 				msg1->data.OpenReceiveChannel.v17.lel_callReference = htolel(tmpChannel->callid);
 				msg1->data.OpenReceiveChannel.v17.lel_dtmfType = htolel(10);
@@ -1695,7 +1695,7 @@ static int sccp_test(int fd, int argc, char *argv[])
 				msg2->data.OpenReceiveChannel.v17.lel_conferenceId = htolel(tmpChannel->callid);
 				msg2->data.OpenReceiveChannel.v17.lel_passThruPartyId = htolel(tmpChannel->passthrupartyid);
 				msg2->data.OpenReceiveChannel.v17.lel_millisecondPacketSize = htolel(packetSize);
-				msg2->data.OpenReceiveChannel.v17.lel_payloadType = htolel(4);
+				msg2->data.OpenReceiveChannel.v17.lel_codecType = (skinny_codec_t)htolel(4);
 				msg2->data.OpenReceiveChannel.v17.lel_vadValue = htolel(tmpChannel->line->echocancel);
 				msg2->data.OpenReceiveChannel.v17.lel_callReference = htolel(tmpChannel->callid);
 				msg2->data.OpenReceiveChannel.v17.lel_dtmfType = htolel(10);
