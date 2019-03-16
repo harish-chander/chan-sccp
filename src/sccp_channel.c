@@ -197,6 +197,10 @@ channelPtr sccp_channel_allocate(constLinePtr l, constDevicePtr device)
 		if (l->preferences_set_on_line_level) {
 			memcpy(&channel->preferences.audio, &l->preferences.audio, sizeof channel->preferences.audio);
 			memcpy(&channel->preferences.video, &l->preferences.video, sizeof channel->preferences.video);
+			if (device) {
+				memcpy(&channel->capabilities.audio, &device->capabilities.audio, sizeof channel->capabilities.audio);
+				memcpy(&channel->capabilities.video, &device->capabilities.video, sizeof channel->capabilities.video);
+			}
 		}
 
 		/* run setters */
@@ -294,12 +298,20 @@ void sccp_channel_setDevice(sccp_channel_t * const channel, const sccp_device_t 
 			sccp_linedevice_refreplace(&channel->privateData->linedevice, ld);
 		}
 		/*! \todo: Check/Fix codec selection on hold/resume */
-		if (channel->preferences.audio[0] == SKINNY_CODEC_NONE) {
+		if (!channel->line->preferences_set_on_line_level && channel->preferences.audio[0] == SKINNY_CODEC_NONE) {
 			memcpy(&channel->preferences.audio, &channel->privateData->device->preferences.audio, sizeof(channel->preferences.audio));
 		}
 		if (channel->capabilities.audio[0] == SKINNY_CODEC_NONE) {
 			memcpy(&channel->capabilities.audio, &channel->privateData->device->capabilities.audio, sizeof(channel->capabilities.audio));
 		}
+#if CS_SCCP_VIDEO
+		if (!channel->line->preferences_set_on_line_level && channel->preferences.video[0] == SKINNY_CODEC_NONE) {
+			memcpy(&channel->preferences.video, &channel->privateData->device->preferences.video, sizeof(channel->preferences.video));
+		}
+		if (channel->capabilities.video[0] == SKINNY_CODEC_NONE) {
+			memcpy(&channel->capabilities.video, &channel->privateData->device->capabilities.video, sizeof(channel->capabilities.video));
+		}
+#endif
 		sccp_copy_string(channel->currentDeviceId, channel->privateData->device->id, sizeof(char[StationMaxDeviceNameSize]));
 		channel->dtmfmode = channel->privateData->device->getDtmfMode(channel->privateData->device);
 		return;
@@ -307,12 +319,20 @@ void sccp_channel_setDevice(sccp_channel_t * const channel, const sccp_device_t 
 EXIT:
 	/* \todo instead of copying caps / prefs from global */
 	/*! \todo: Check/Fix codec selection on hold/resume */
-	if (channel->preferences.audio[0] == SKINNY_CODEC_NONE) {
+	if (!channel->line->preferences_set_on_line_level && channel->preferences.audio[0] == SKINNY_CODEC_NONE) {
 		memcpy(&channel->preferences.audio, &GLOB(global_preferences), sizeof(channel->preferences.audio));
 	}
 	if (channel->capabilities.audio[0] == SKINNY_CODEC_NONE) {
 		memcpy(&channel->capabilities.audio, &GLOB(global_preferences), sizeof(channel->capabilities.audio));
 	}
+#if CS_SCCP_VIDEO
+	if (!channel->line->preferences_set_on_line_level && channel->preferences.video[0] == SKINNY_CODEC_NONE) {
+		memcpy(&channel->preferences.video, &GLOB(global_preferences), sizeof(channel->preferences.video));
+	}
+	if (channel->capabilities.video[0] == SKINNY_CODEC_NONE) {
+		memcpy(&channel->capabilities.video, &GLOB(global_preferences), sizeof(channel->capabilities.video));
+	}
+#endif
 	sccp_linedevice_refreplace(&channel->privateData->linedevice, NULL);
 	/* \todo we should use */
 	// sccp_line_copyMinimumCodecSetFromLineToChannel(l, c); 
@@ -321,7 +341,7 @@ EXIT:
 	channel->dtmfmode = SCCP_DTMFMODE_RFC2833;
 }
 
-static void sccp_channel_recalculateCodecFormat(sccp_channel_t * channel)
+static void sccp_channel_recalculateAudioCodecFormat(sccp_channel_t * channel)
 {
 	char s1[512], s2[512], s3[512], s4[512];
 	skinny_codec_t joint = channel->rtp.audio.writeFormat;
@@ -331,7 +351,6 @@ static void sccp_channel_recalculateCodecFormat(sccp_channel_t * channel)
 		if (channel->privateData->device) {
 			preferences = (!channel->line->preferences_set_on_line_level) ? &(channel->privateData->device->preferences) : &(channel->preferences);
 			sccp_codec_reduceSet(preferences->audio, channel->privateData->device->capabilities.audio);
-			sccp_codec_reduceSet(preferences->video, channel->privateData->device->capabilities.video);
 		}
 		joint = sccp_codec_findBestJoint(channel, preferences->audio, channel->remoteCapabilities.audio);
 		if (SKINNY_CODEC_NONE == joint) {
@@ -353,7 +372,7 @@ static void sccp_channel_recalculateCodecFormat(sccp_channel_t * channel)
 		}
 	}
 	sccp_log((DEBUGCAT_CODEC + DEBUGCAT_CHANNEL)) (VERBOSE_PREFIX_3
-		"%s - %s: (recalculateCodecformat) \n\t"
+		"%s - %s: (recalculateAudioCodecformat) \n\t"
 		"channel capabilities: %s\n\t"
 		"%s preferences %s\n\t"
 		"%s preferences: %s\n\t"
@@ -370,6 +389,54 @@ static void sccp_channel_recalculateCodecFormat(sccp_channel_t * channel)
 	);
 }
 
+static void sccp_channel_recalculateVideoCodecFormat(sccp_channel_t * channel)
+{
+	char s1[512], s2[512], s3[512], s4[512];
+	skinny_codec_t joint = channel->rtp.video.writeFormat;
+	skinny_capabilities_t *preferences = &(channel->preferences);
+
+	if (channel->rtp.video.receiveChannelState == SCCP_RTP_STATUS_INACTIVE && channel->rtp.video.mediaTransmissionState == SCCP_RTP_STATUS_INACTIVE) {
+		if (channel->privateData->device) {
+			preferences = (!channel->line->preferences_set_on_line_level) ? &(channel->privateData->device->preferences) : &(channel->preferences);
+			sccp_codec_reduceSet(preferences->video, channel->privateData->device->capabilities.video);
+		}
+		joint = sccp_codec_findBestJoint(channel, preferences->video, channel->remoteCapabilities.video);
+		if (SKINNY_CODEC_NONE == joint) {
+			joint = preferences->video[0] ? preferences->video[0] : SKINNY_CODEC_WIDEBAND_256K;
+		}
+		if (channel->rtp.video.instance) {                      // Fix nativeAudioFormats
+			skinny_codec_t codecs[SKINNY_MAX_CAPABILITIES] = { joint, SKINNY_CODEC_NONE};
+			iPbx.set_nativeAudioFormats(channel, codecs);
+		}
+	}
+	if (joint != SKINNY_CODEC_NONE) {
+		if (channel->rtp.video.receiveChannelState == SCCP_RTP_STATUS_INACTIVE) {
+			channel->rtp.video.writeFormat = joint;
+			iPbx.rtp_setWriteFormat(channel, joint);
+		//}
+		//if (channel->rtp.video.mediaTransmissionState == SCCP_RTP_STATUS_INACTIVE) {
+			channel->rtp.video.readFormat = joint;
+			iPbx.rtp_setReadFormat(channel, joint);
+		}
+	}
+	sccp_log((DEBUGCAT_CODEC + DEBUGCAT_CHANNEL)) (VERBOSE_PREFIX_3
+		"%s - %s: (recalculateVideoCodecformat) \n\t"
+		"channel capabilities: %s\n\t"
+		"%s preferences %s\n\t"
+		"%s preferences: %s\n\t"
+		"remote caps: %s\n\t"
+		"Format:%s\n",
+		channel->currentDeviceId, channel->designator,
+		sccp_codec_multiple2str(s1, sizeof(s1) - 1, channel->capabilities.video, ARRAY_LEN(channel->capabilities.video)),
+		(SCCP_LIST_GETSIZE(&channel->line->devices) > 1) ? "shared" : "channel",
+		sccp_codec_multiple2str(s2, sizeof(s2) - 1, channel->preferences.video, ARRAY_LEN(channel->preferences.video)),
+		channel->line->preferences_set_on_line_level ? "line" : "device",
+		channel->line->preferences_set_on_line_level ? sccp_codec_multiple2str(s3, sizeof(s3) - 1, channel->line->preferences.video, ARRAY_LEN(channel->line->preferences.video)) : ((channel->privateData->device) ? sccp_codec_multiple2str(s3, sizeof(s3) - 1, channel->privateData->device->preferences.video, ARRAY_LEN(channel->privateData->device->preferences.video)) : ""),
+		sccp_codec_multiple2str(s4, sizeof(s4) - 1, channel->remoteCapabilities.video, ARRAY_LEN(channel->remoteCapabilities.video)),
+		codec2name(joint)
+	);
+}
+
 /*!
  * \brief Update Channel Capability
  * \param channel a *retained* SCCP Channel
@@ -379,7 +446,10 @@ void sccp_channel_updateChannelCapability(sccp_channel_t * channel)
 	if (iPbx.retrieve_remote_capabilities && channel->remoteCapabilities.audio[0] == SKINNY_CODEC_NONE) {
 		iPbx.retrieve_remote_capabilities(channel);
 	}
-	sccp_channel_recalculateCodecFormat(channel);
+	sccp_channel_recalculateAudioCodecFormat(channel);
+#if CS_SCCP_VIDEO
+	sccp_channel_recalculateVideoCodecFormat(channel);
+#endif
 }
 
 /*!
@@ -617,13 +687,9 @@ void sccp_channel_openReceiveChannel(constChannelPtr channel)
 	d->protocol->sendOpenReceiveChannel(d, channel);
 #ifdef CS_SCCP_VIDEO
 	if (sccp_device_isVideoSupported(d) && channel->videomode == SCCP_VIDEO_MODE_AUTO) {
-		sccp_log((DEBUGCAT_RTP)) (VERBOSE_PREFIX_3 "%s: We can have video, try to start vrtp\n", d->id);
-		if (!channel->rtp.video.instance && !sccp_rtp_createServer(d, (channelPtr)channel, SCCP_RTP_VIDEO)) {		// discard const
-			sccp_log((DEBUGCAT_RTP)) (VERBOSE_PREFIX_3 "%s: can not start vrtp\n", d->id);
-		} else {
-			sccp_log((DEBUGCAT_RTP)) (VERBOSE_PREFIX_3 "%s: video rtp started\n", d->id);
-			//sccp_channel_startMultiMediaTransmission(channel);
-		}
+		//sccp_log((DEBUGCAT_RTP)) (VERBOSE_PREFIX_3 "%s: We can have video, try to start vrtp\n", d->id);
+		sccp_channel_openMultiMediaReceiveChannel(channel);
+		//sccp_channel_startMultiMediaTransmission(channel);
 	}
 #endif
 }
@@ -891,7 +957,6 @@ void sccp_channel_openMultiMediaReceiveChannel(constChannelPtr channel)
 	int payloadType;
 	uint8_t lineInstance;
 	int bitRate = 1500;
-	skinny_codec_t joint = SKINNY_CODEC_NONE;
 
 	pbx_assert(channel != NULL);
 	AUTO_RELEASE(sccp_device_t, d , sccp_channel_getDevice(channel));
@@ -903,34 +968,26 @@ void sccp_channel_openMultiMediaReceiveChannel(constChannelPtr channel)
 
 	sccp_rtp_t *video = (sccp_rtp_t *) &(channel->rtp.video);
 	if ((video->receiveChannelState & SCCP_RTP_STATUS_ACTIVE)) {
+		pbx_log(LOG_WARNING, "%s: (openMultiMediaReceiveChannel) Channel already active. returning.\n", channel->designator);
 		return;
 	}
 
-	if (!channel->rtp.video.instance && !sccp_rtp_createServer(d, (channelPtr)channel, SCCP_RTP_VIDEO)) {		// discard const
-		pbx_log(LOG_WARNING, "%s: can not start vrtp\n", d->id);
+	if (!sccp_device_isVideoSupported(d) || channel->videomode == SCCP_VIDEO_MODE_OFF) {
+		pbx_log(LOG_WARNING, "%s: (openMultiMediaReceiveChannel) No video supported on device:%s or turning off. returning.\n", channel->designator, d->id);
+		return;
 	}
 
-	char s1[512], s2[512];
-	sccp_log((DEBUGCAT_RTP)) (VERBOSE_PREFIX_2 "%s: (openMultiMediaReceiveChannel) Checking codecs, local:%s, remote:%s\n", d->id,
-		sccp_codec_multiple2str(s1, sizeof(s1) - 1, channel->preferences.video, ARRAY_LEN(channel->preferences.video)),
-		sccp_codec_multiple2str(s2, sizeof(s2) - 1, channel->remoteCapabilities.video, ARRAY_LEN(channel->remoteCapabilities.video)));
-
-	// recalculate format;
-	if (channel->preferences.video[0] != SKINNY_CODEC_NONE && channel->remoteCapabilities.video[0] != SKINNY_CODEC_NONE) {
-		joint = sccp_codec_findBestJoint(channel, channel->preferences.video, channel->remoteCapabilities.video);
-		if (joint == SKINNY_CODEC_NONE) {
-			joint = channel->preferences.video[0];
-		}
-		video->writeFormat = video->readFormat = joint;
-		skinny_codec_t joint_codecs[SKINNY_MAX_CAPABILITIES] = { joint, SKINNY_CODEC_NONE};
-		//iPbx.set_nativeVideoFormats(channel, codecs, 1);
-		iPbx.set_nativeVideoFormats(channel, joint_codecs);
-		iPbx.rtp_setWriteFormat(channel, joint);
-		iPbx.rtp_setReadFormat(channel, joint);
+	if (!video->instance && !sccp_rtp_createServer(d, (channelPtr)channel, SCCP_RTP_VIDEO)) {		// discard const
+		pbx_log(LOG_WARNING, "%s: Could not start vrtp on device:%s. returning\n", channel->designator, d->id);
+		return;
 	}
 
-	if (joint == SKINNY_CODEC_NONE) {
-		sccp_log((DEBUGCAT_RTP)) (VERBOSE_PREFIX_2 "%s: (openMultiMediaReceiveChannel) No joint codecs found\n", d->id);
+	if (channel->owner && SKINNY_CODEC_NONE == video->writeFormat) {
+		sccp_channel_recalculateVideoCodecFormat((channelPtr)channel);
+	}
+
+	if (SKINNY_CODEC_NONE == video->writeFormat) {
+		pbx_log(LOG_WARNING, "%s: (openMultiMediaReceiveChannel) No joint codecs found. Switching video off && returning.\n", d->id);
 		((sccp_channel_t *)channel)->videomode = SCCP_VIDEO_MODE_OFF;						// discard const
 		return;
 	}
@@ -938,7 +995,6 @@ void sccp_channel_openMultiMediaReceiveChannel(constChannelPtr channel)
 	//if (d->nat >= SCCP_NAT_ON) {
 	//	sccp_rtp_updateNatRemotePhone(channel, video);
 	//}
-
 	video->receiveChannelState |= SCCP_RTP_STATUS_PROGRESS;
 	skinnyFormat = video->writeFormat;
 
@@ -950,7 +1006,8 @@ void sccp_channel_openMultiMediaReceiveChannel(constChannelPtr channel)
 	payloadType = sccp_rtp_get_payloadType(&channel->rtp.video, video->writeFormat);
 	lineInstance = sccp_device_find_index_for_line(d, channel->line->name);
 
-	sccp_log((DEBUGCAT_RTP)) (VERBOSE_PREFIX_3 "%s: Open receive multimedia channel with format %s[%d] skinnyFormat %s[%d], payload %d\n", d->id, codec2str(video->writeFormat), video->writeFormat, codec2str(skinnyFormat), skinnyFormat, payloadType);
+	sccp_log((DEBUGCAT_RTP)) (VERBOSE_PREFIX_3 "%s: Open receive multimedia channel with format %s[%d] skinnyFormat %s[%d], payload %d\n", d->id,
+		codec2str(video->writeFormat), video->writeFormat, codec2str(skinnyFormat), skinnyFormat, payloadType);
 	d->protocol->sendOpenMultiMediaChannel(d, channel, skinnyFormat, payloadType, lineInstance, bitRate);
 }
 
@@ -977,22 +1034,25 @@ int sccp_channel_receiveMultiMediaChannelOpen(sccp_device_t *d, sccp_channel_t *
 	c->rtp.video.receiveChannelState |= SCCP_RTP_STATUS_ACTIVE;
 
 	if (c->owner && (c->state == SCCP_CHANNELSTATE_CONNECTED || c->state == SCCP_CHANNELSTATE_CONNECTEDCONFERENCE)) {
-		// force frame update
-		sccp_msg_t *msg_out = NULL;
-		msg_out = sccp_build_packet(MiscellaneousCommandMessage, sizeof(msg_out->data.MiscellaneousCommandMessage));
-		msg_out->data.MiscellaneousCommandMessage.lel_conferenceId = htolel(c->callid);
-		msg_out->data.MiscellaneousCommandMessage.lel_passThruPartyId = htolel(c->passthrupartyid);
-		msg_out->data.MiscellaneousCommandMessage.lel_callReference = htolel(c->callid);
-		msg_out->data.MiscellaneousCommandMessage.lel_miscCommandType = htolel(SKINNY_MISCCOMMANDTYPE_VIDEOFASTUPDATEPICTURE);	// videoFastUpdatePicture
-		sccp_dev_send(d, msg_out);
+		if (SCCP_RTP_STATUS_INACTIVE == c->rtp.video.mediaTransmissionState) {
+			sccp_channel_startMultiMediaTransmission(c);
+		}  else {
+			// force frame update
+			sccp_msg_t *msg_out = NULL;
+			msg_out = sccp_build_packet(MiscellaneousCommandMessage, sizeof(msg_out->data.MiscellaneousCommandMessage));
+			msg_out->data.MiscellaneousCommandMessage.lel_conferenceId = htolel(c->callid);
+			msg_out->data.MiscellaneousCommandMessage.lel_passThruPartyId = htolel(c->passthrupartyid);
+			msg_out->data.MiscellaneousCommandMessage.lel_callReference = htolel(c->callid);
+			msg_out->data.MiscellaneousCommandMessage.lel_miscCommandType = htolel(SKINNY_MISCCOMMANDTYPE_VIDEOFASTUPDATEPICTURE);	// videoFastUpdatePicture
+			sccp_dev_send(d, msg_out);
 
-		//msg_out = sccp_build_packet(FlowControlNotifyMessage, sizeof(msg_out->data.FlowControlNotifyMessage));
-		//msg_out->data.FlowControlNotifyMessage.lel_conferenceID         = htolel(c->callid);
-		//msg_out->data.FlowControlNotifyMessage.lel_passThruPartyId      = htolel(c->passthrupartyid);
-		//msg_out->data.FlowControlNotifyMessage.lel_callReference        = htolel(c->callid);
-		//msg_out->data.FlowControlNotifyMessage.lel_maxBitRate           = htolel(500000);
-		//sccp_dev_send(d, msg_out);
-
+			//msg_out = sccp_build_packet(FlowControlNotifyMessage, sizeof(msg_out->data.FlowControlNotifyMessage));
+			//msg_out->data.FlowControlNotifyMessage.lel_conferenceID         = htolel(c->callid);
+			//msg_out->data.FlowControlNotifyMessage.lel_passThruPartyId      = htolel(c->passthrupartyid);
+			//msg_out->data.FlowControlNotifyMessage.lel_callReference        = htolel(c->callid);
+			//msg_out->data.FlowControlNotifyMessage.lel_maxBitRate           = htolel(500000);
+			//sccp_dev_send(d, msg_out);
+		}
 		iPbx.queue_control(c->owner, AST_CONTROL_VIDUPDATE);
 	}
 	return SCCP_RTP_STATUS_ACTIVE;

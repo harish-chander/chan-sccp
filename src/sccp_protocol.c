@@ -542,7 +542,6 @@ static void sccp_protocol_sendOpenReceiveChannelV3(constDevicePtr device, constC
 	msg->data.OpenReceiveChannel.v3.lel_conferenceId = htolel(channel->callid);
 	msg->data.OpenReceiveChannel.v3.lel_passThruPartyId = htolel(channel->passthrupartyid);
 	msg->data.OpenReceiveChannel.v3.lel_millisecondPacketSize = htolel(packetSize);
-	//msg->data.OpenReceiveChannel.v3.lel_payloadType = htolel(channel->rtp.audio.writeFormat);
 	msg->data.OpenReceiveChannel.v3.lel_codecType = htolel(channel->rtp.audio.writeFormat);
 	msg->data.OpenReceiveChannel.v3.lel_vadValue = htolel(channel->line->echocancel);
 	msg->data.OpenReceiveChannel.v3.lel_callReference = htolel(channel->callid);
@@ -579,7 +578,6 @@ static void sccp_protocol_sendOpenReceiveChannelV17(constDevicePtr device, const
 	msg->data.OpenReceiveChannel.v17.lel_conferenceId = htolel(channel->callid);
 	msg->data.OpenReceiveChannel.v17.lel_passThruPartyId = htolel(channel->passthrupartyid);
 	msg->data.OpenReceiveChannel.v17.lel_millisecondPacketSize = htolel(packetSize);
-	//msg->data.OpenReceiveChannel.v17.lel_payloadType = htolel(channel->rtp.audio.writeFormat);
 	msg->data.OpenReceiveChannel.v17.lel_codecType = htolel(channel->rtp.audio.writeFormat);
 	msg->data.OpenReceiveChannel.v17.lel_vadValue = htolel(channel->line->echocancel);
 	msg->data.OpenReceiveChannel.v17.lel_callReference = htolel(channel->callid);
@@ -623,7 +621,6 @@ static void sccp_protocol_sendOpenReceiveChannelv22(constDevicePtr device, const
 	msg->data.OpenReceiveChannel.v22.lel_conferenceId = htolel(channel->callid);
 	msg->data.OpenReceiveChannel.v22.lel_passThruPartyId = htolel(channel->passthrupartyid);
 	msg->data.OpenReceiveChannel.v22.lel_millisecondPacketSize = htolel(packetSize);
-	//msg->data.OpenReceiveChannel.v22.lel_payloadType = htolel(channel->rtp.audio.writeFormat);
 	msg->data.OpenReceiveChannel.v22.lel_codecType = htolel(channel->rtp.audio.writeFormat);
 	msg->data.OpenReceiveChannel.v22.lel_vadValue = htolel(channel->line->echocancel);
 	msg->data.OpenReceiveChannel.v22.lel_callReference = htolel(channel->callid);
@@ -666,6 +663,7 @@ static void sccp_protocol_sendOpenMultiMediaChannelV3(constDevicePtr device, con
 	msg->data.OpenMultiMediaChannelMessage.v3.lel_conferenceID = htolel(channel->callid);
 	msg->data.OpenMultiMediaChannelMessage.v3.lel_passThruPartyID = htolel(channel->passthrupartyid);
 	msg->data.OpenMultiMediaChannelMessage.v3.lel_codecType = htolel(skinnyFormat);
+	//msg->data.OpenMultiMediaChannelMessage.v3.lel_codecType = htolel(channel->rtp.video.writeFormat);
 	msg->data.OpenMultiMediaChannelMessage.v3.lel_lineInstance = htolel(lineInstance);
 	msg->data.OpenMultiMediaChannelMessage.v3.lel_callReference = htolel(channel->callid);
 	
@@ -736,6 +734,7 @@ static void sccp_protocol_sendOpenMultiMediaChannelV12(constDevicePtr device, co
 	msg->data.OpenMultiMediaChannelMessage.v12.lel_conferenceID = htolel(channel->callid);
 	msg->data.OpenMultiMediaChannelMessage.v12.lel_passThruPartyID = htolel(channel->passthrupartyid);
 	msg->data.OpenMultiMediaChannelMessage.v12.lel_codecType = htolel(skinnyFormat);
+	//msg->data.OpenMultiMediaChannelMessage.v12.lel_codecType = htolel(channel->rtp.video.writeFormat);
 	msg->data.OpenMultiMediaChannelMessage.v12.lel_lineInstance = htolel(lineInstance);
 	msg->data.OpenMultiMediaChannelMessage.v12.lel_callReference = htolel(channel->callid);
 	
@@ -823,6 +822,7 @@ static void sccp_protocol_sendOpenMultiMediaChannelV17(constDevicePtr device, co
 	msg->data.OpenMultiMediaChannelMessage.v17.lel_conferenceID = htolel(channel->callid);
 	msg->data.OpenMultiMediaChannelMessage.v17.lel_passThruPartyID = htolel(channel->passthrupartyid);
 	msg->data.OpenMultiMediaChannelMessage.v17.lel_codecType = htolel(skinnyFormat);
+	//msg->data.OpenMultiMediaChannelMessage.v17.lel_codecType = htolel(channel->rtp.video.writeFormat);
 	msg->data.OpenMultiMediaChannelMessage.v17.lel_lineInstance = htolel(lineInstance);
 	msg->data.OpenMultiMediaChannelMessage.v17.lel_callReference = htolel(channel->callid);
 	
@@ -1043,12 +1043,14 @@ static void sccp_protocol_sendStartMediaTransmissionv22(constDevicePtr device, c
 static void sccp_protocol_sendStartMultiMediaTransmissionV3(constDevicePtr device, constChannelPtr channel, int payloadType, int bitRate)
 {
 	sccp_msg_t *msg = sccp_build_packet(StartMultiMediaTransmission, sizeof(msg->data.StartMultiMediaTransmission.v3));
+	//uint payloadType = sccp_rtp_get_payloadType(&channel->rtp.video, video->readFormat);
 
 	msg->data.StartMultiMediaTransmission.v3.lel_conferenceID = htolel(channel->callid);
 	msg->data.StartMultiMediaTransmission.v3.lel_passThruPartyId = htolel(channel->passthrupartyid);
 	//msg->data.StartMultiMediaTransmission.v3.lel_payloadCapability = htolel(channel->rtp.video.readFormat);
 	msg->data.StartMultiMediaTransmission.v3.lel_codecType = htolel(channel->rtp.video.readFormat);
 	msg->data.StartMultiMediaTransmission.v3.lel_callReference = htolel(channel->callid);
+	msg->data.StartMultiMediaTransmission.v3.lel_payload_rfc_number = htolel(0);
 	msg->data.StartMultiMediaTransmission.v3.lel_payloadType = htolel(payloadType);
 	msg->data.StartMultiMediaTransmission.v3.lel_DSCPValue = htolel(136);
 	msg->data.StartMultiMediaTransmission.v3.videoParameter.bitRate = htolel(bitRate);
@@ -1087,6 +1089,7 @@ static void sccp_protocol_sendStartMultiMediaTransmissionV17(constDevicePtr devi
 	//msg->data.StartMultiMediaTransmission.v17.lel_payloadCapability = htolel(channel->rtp.video.readFormat);
 	msg->data.StartMultiMediaTransmission.v17.lel_codecType = htolel(channel->rtp.video.readFormat);
 	msg->data.StartMultiMediaTransmission.v17.lel_callReference = htolel(channel->callid);
+	msg->data.StartMultiMediaTransmission.v17.lel_payload_rfc_number = htolel(0);
 	msg->data.StartMultiMediaTransmission.v17.lel_payloadType = htolel(payloadType);
 	msg->data.StartMultiMediaTransmission.v17.lel_DSCPValue = htolel(136);
 	msg->data.StartMultiMediaTransmission.v17.videoParameter.confServiceNum = htolel(channel->callid);

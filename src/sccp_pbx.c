@@ -643,6 +643,15 @@ int sccp_pbx_answer(sccp_channel_t * channel)
 			} else if ((c->rtp.audio.receiveChannelState & SCCP_RTP_STATUS_ACTIVE) && SCCP_RTP_STATUS_INACTIVE == c->rtp.audio.mediaTransmissionState) {
 				sccp_channel_startMediaTransmission(c);
 			}
+#if CS_SCCP_VIDEO
+			if (sccp_device_isVideoSupported(d) && c->videomode == SCCP_VIDEO_MODE_AUTO && c->preferences.video[0] != SKINNY_CODEC_NONE) {
+				if (SCCP_RTP_STATUS_INACTIVE == c->rtp.video.receiveChannelState) {
+					sccp_channel_openMultiMediaReceiveChannel(c);
+				} else if ((c->rtp.video.receiveChannelState & SCCP_RTP_STATUS_ACTIVE) && SCCP_RTP_STATUS_INACTIVE == c->rtp.video.mediaTransmissionState) {
+					sccp_channel_startMultiMediaTransmission(c);
+				}
+			}
+#endif
 #if CS_SCCP_CONFERENCE 
 			sccp_indicate(d, c, d->conference ? SCCP_CHANNELSTATE_CONNECTEDCONFERENCE : SCCP_CHANNELSTATE_CONNECTED);
 #else
@@ -762,33 +771,29 @@ boolean_t sccp_pbx_channel_allocate(sccp_channel_t * channel, const void *ids, c
 		if (l->preferences_set_on_line_level) {
 			memcpy(&c->preferences.audio, &l->preferences.audio, sizeof(c->preferences.audio));
 			memcpy(&c->preferences.video, &l->preferences.video, sizeof(c->preferences.video));
+			memcpy(&c->capabilities.audio, &d->capabilities.audio, sizeof(c->capabilities.audio));
+			memcpy(&c->capabilities.video, &d->capabilities.video, sizeof(c->capabilities.video));
 		} else {
-			if (SCCP_LIST_GETSIZE(&l->devices) == 1) {
-				memcpy(&c->capabilities.audio, &d->capabilities.audio, sizeof(c->capabilities.audio));
-				memcpy(&c->capabilities.video, &d->capabilities.video, sizeof(c->capabilities.video));
-				memcpy(&c->preferences.audio , &d->preferences.audio , sizeof(c->preferences.audio));
-				memcpy(&c->preferences.video , &d->preferences.video , sizeof(c->preferences.video));
-			} else {			/* shared line */
-				/* \todo we should be doing this when a device is attached to a line, and store the caps/prefs inside the sccp_line_t */
-				/* \todo it would be nice if we could set audio preferences by line instead of only per device, especially in case of shared line */
-				sccp_line_copyCodecSetsFromLineToChannel(l, c);
-			}
+			sccp_line_copyCodecSetsFromLineToChannel(l, c);
 		}
-		// make sure preferences only contains the codecs that this channel is capable of
 		sccp_codec_reduceSet(c->preferences.audio , c->capabilities.audio);
 		sccp_codec_reduceSet(c->preferences.video , c->capabilities.video);
 	}
-	sccp_log((DEBUGCAT_PBX + DEBUGCAT_CHANNEL)) (VERBOSE_PREFIX_3 "SCCP:              cid_num: \"%s\"\n", cid_num);
-	sccp_log((DEBUGCAT_PBX + DEBUGCAT_CHANNEL)) (VERBOSE_PREFIX_3 "SCCP:             cid_name: \"%s\"\n", cid_name);
-	sccp_log((DEBUGCAT_PBX + DEBUGCAT_CHANNEL)) (VERBOSE_PREFIX_3 "SCCP:          accountcode: \"%s\"\n", l->accountcode);
-	sccp_log((DEBUGCAT_PBX + DEBUGCAT_CHANNEL)) (VERBOSE_PREFIX_3 "SCCP:                exten: \"%s\"\n", c->dialedNumber);
-	sccp_log((DEBUGCAT_PBX + DEBUGCAT_CHANNEL)) (VERBOSE_PREFIX_3 "SCCP:              context: \"%s\"\n", l->context);
-	sccp_log((DEBUGCAT_PBX + DEBUGCAT_CHANNEL)) (VERBOSE_PREFIX_3 "SCCP:             amaflags: \"%d\"\n", l->amaflags);
-	sccp_log((DEBUGCAT_PBX + DEBUGCAT_CHANNEL)) (VERBOSE_PREFIX_3 "SCCP:            chan/call: \"%s\"\n", c->designator);
-	char s1[512], s2[512];
-	sccp_log((DEBUGCAT_PBX + DEBUGCAT_CHANNEL)) (VERBOSE_PREFIX_3 "SCCP:combined capabilities: \"%s\"\n", sccp_codec_multiple2str(s1, sizeof(s1) - 1, c->capabilities.audio, SKINNY_MAX_CAPABILITIES));
-	sccp_log((DEBUGCAT_PBX + DEBUGCAT_CHANNEL)) (VERBOSE_PREFIX_3 "SCCP:  reduced preferences: \"%s\"\n", sccp_codec_multiple2str(s2, sizeof(s2) - 1, c->preferences.audio, SKINNY_MAX_CAPABILITIES));
-
+	sccp_log((DEBUGCAT_PBX + DEBUGCAT_CHANNEL)) (VERBOSE_PREFIX_3 "SCCP:             cid_num: \"%s\"\n", cid_num);
+	sccp_log((DEBUGCAT_PBX + DEBUGCAT_CHANNEL)) (VERBOSE_PREFIX_3 "SCCP:            cid_name: \"%s\"\n", cid_name);
+	sccp_log((DEBUGCAT_PBX + DEBUGCAT_CHANNEL)) (VERBOSE_PREFIX_3 "SCCP:         accountcode: \"%s\"\n", l->accountcode);
+	sccp_log((DEBUGCAT_PBX + DEBUGCAT_CHANNEL)) (VERBOSE_PREFIX_3 "SCCP:               exten: \"%s\"\n", c->dialedNumber);
+	sccp_log((DEBUGCAT_PBX + DEBUGCAT_CHANNEL)) (VERBOSE_PREFIX_3 "SCCP:             context: \"%s\"\n", l->context);
+	sccp_log((DEBUGCAT_PBX + DEBUGCAT_CHANNEL)) (VERBOSE_PREFIX_3 "SCCP:            amaflags: \"%d\"\n", l->amaflags);
+	sccp_log((DEBUGCAT_PBX + DEBUGCAT_CHANNEL)) (VERBOSE_PREFIX_3 "SCCP:           chan/call: \"%s\"\n", c->designator);
+	char s1[512];
+	sccp_log((DEBUGCAT_PBX + DEBUGCAT_CHANNEL)) (VERBOSE_PREFIX_3 "SCCP: combined audio caps: \"%s\"\n", sccp_codec_multiple2str(s1, sizeof(s1) - 1, c->capabilities.audio, SKINNY_MAX_CAPABILITIES));
+	sccp_log((DEBUGCAT_PBX + DEBUGCAT_CHANNEL)) (VERBOSE_PREFIX_3 "SCCP: reduced audio prefs: \"%s\"\n", sccp_codec_multiple2str(s1, sizeof(s1) - 1, c->preferences.audio, SKINNY_MAX_CAPABILITIES));
+#if CS_SCCP_VIDEO
+	sccp_log((DEBUGCAT_PBX + DEBUGCAT_CHANNEL)) (VERBOSE_PREFIX_3 "SCCP: line video prefs: \"%s\"\n", sccp_codec_multiple2str(s1, sizeof(s1) - 1, l->preferences.video, SKINNY_MAX_CAPABILITIES));
+	sccp_log((DEBUGCAT_PBX + DEBUGCAT_CHANNEL)) (VERBOSE_PREFIX_3 "SCCP: combined video caps: \"%s\"\n", sccp_codec_multiple2str(s1, sizeof(s1) - 1, c->capabilities.video, SKINNY_MAX_CAPABILITIES));
+	sccp_log((DEBUGCAT_PBX + DEBUGCAT_CHANNEL)) (VERBOSE_PREFIX_3 "SCCP: reduced video prefs: \"%s\"\n", sccp_codec_multiple2str(s1, sizeof(s1) - 1, c->preferences.video, SKINNY_MAX_CAPABILITIES));
+#endif
 /*
 	// this should not be done here at this moment, leaving it to alloc_pbxChannel to sort out.
 	if (c->calltype == SKINNY_CALLTYPE_INBOUND) {
@@ -903,6 +908,13 @@ boolean_t sccp_pbx_channel_allocate(sccp_channel_t * channel, const void *ids, c
 				sccp_indicate(d, c, SCCP_CHANNELSTATE_CONGESTION);
 				return FALSE;
 			}
+#if CS_SCCP_VIDEO
+			if (sccp_device_isVideoSupported(d) && c->preferences.video[0] != SKINNY_CODEC_NONE && !c->rtp.video.instance && !sccp_rtp_createServer(d, c, SCCP_RTP_AUDIO)) {
+				pbx_log(LOG_WARNING, "%s: Error opening VRTP for channel %s\n", d->id, c->designator);
+				c->videomode = SCCP_VIDEO_MODE_OFF;
+				//c->preferences.video[0] = SCCP_CODEC_NONE;
+			}
+#endif
 		}
 		// export sccp informations in asterisk dialplan
 		pbx_builtin_setvar_helper(tmp, "SCCP_DEVICE_MAC", d->id);
