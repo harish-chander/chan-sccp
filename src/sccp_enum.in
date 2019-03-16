@@ -152,7 +152,7 @@ strenum nat {
         SCCP_NAT_AUTO_ON,				,	"(Auto)On",
 }
 
-enum video_mode {
+strenum video_mode {
         SCCP_VIDEO_MODE_OFF,				=0,	"Off",
         SCCP_VIDEO_MODE_USER,				,	"User",
 	SCCP_VIDEO_MODE_AUTO,				,	"Auto",
