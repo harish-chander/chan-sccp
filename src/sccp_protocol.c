@@ -1333,8 +1333,6 @@ static void sccp_protocol_sendLineStatRespV17(constDevicePtr d, uint32_t lineNum
  	int pktLen = SCCP_PACKET_HEADER + dummyLen;
 	sccp_msg_t *msg = sccp_build_packet(LineStatDynamicMessage, pktLen);
 	msg->data.LineStatDynamicMessage.lel_lineNumber = htolel(lineNumber);
-	//Bit-field: 1-Original Dialed 2-Redirected Dialed, 4-Calling line ID, 8-Calling name ID
-	msg->data.LineStatDynamicMessage.lel_lineType = htolel(15);
 	if (dummyLen) {
 		char *dummyPtr = msg->data.LineStatDynamicMessage.dummy;
 		d->copyStr2Locale(d, dummyPtr, dirNumber, dirNumLen+1);
@@ -1344,6 +1342,7 @@ static void sccp_protocol_sendLineStatRespV17(constDevicePtr d, uint32_t lineNum
 		d->copyStr2Locale(d, dummyPtr, displayName, displayNameLen+1);
 		dummyPtr += displayNameLen + 1;
 	}
+	//Bit-field: 1-Original Dialed 2-Redirected Dialed, 4-Calling line ID, 8-Calling name ID
 	//msg->data.LineStatDynamicMessage.lel_lineDisplayOptions = htolel(lineDisplayOptions);
 	sccp_dev_send(d, msg);
 }

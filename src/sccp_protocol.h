@@ -880,7 +880,7 @@ typedef union {
 		uint32_t lel_appInstanceID;
 		uint32_t lel_routing;
 		//char data[StationMaxXMLMessage];                                                              // dummy char for variable length message (Causes issues on 7960, needs further research)
-		char data[];								// dummy char for variable length message (Revert)
+		char data[1];											// dummy char for variable length message (Revert)
 	} UserToDeviceDataVersion1Message;									/*!< User to Device Version1 Message Structure */
 
 	struct {
@@ -1405,29 +1405,6 @@ typedef union {
 		char DisplayName[StationMaxNameSize];
 	} SpeedDialStatDynamicMessage;										/*!< Speed Dial Stat Dynamic Message Structure */
 
-	struct {												// OK
-		uint32_t lel_displayTimeout;
-		uint32_t dummy;
-	} DisplayDynamicNotifyMessage;										// 0x0143
-
-	struct {												// OK
-		uint32_t lel_displayTimeout;
-		uint32_t lel_priority;
-		uint32_t dummy;
-	} DisplayDynamicPriNotifyMessage;									// 0x0144;
-
-	struct {
-		uint32_t lel_messageTimeout;									/*!< Message Timeout */
-		uint32_t lel_lineInstance;									/*!< Line Instance  */
-		uint32_t lel_callReference;									/*!< Call Reference */
-		/* here follow the message string
-		 * take care rest of size should
-		 * be calculated with string
-		 * size + 1 (NULL TERMINATION)
-		 * padded by 4
-		 */
-		uint32_t dummy;											/*!< Dummy, this is just for addressing, it doesn't matter */
-	} DisplayDynamicPromptStatusMessage;									/*!< Display Dynamic Prompt Status Message Structure */
 
 	struct {
 		uint32_t lel_conferenceID;
@@ -1437,7 +1414,7 @@ typedef union {
 	struct {
 		uint32_t lel_lineNumber;									/*!< Line Number */
 		uint32_t lel_lineType;										/*!< Line Type: Bit-field: 1-Original Dialed 2-Redirected Dialed, 4-Calling line ID, 8-Calling name ID */
-		char dummy[0];											/*!< Dummy (25+141+141) + 3 terminators */
+		char dummy[1];											/*!< Dummy (25+141+141) + 3 terminators */
 		//char lineDirNumber[25];
 		//char lineFullyQualifiedDisplayName[40];
 		//char lineTextLabel[40];
@@ -1461,7 +1438,7 @@ typedef union {
 														   5 RestrictOriginalCalledPartyNumber
 														   6 RestrictLastRedirectPartyName
 														   7 RestrictLastRedirectPartyNumber */
-		uint32_t dummy;											/*!< Dummy */
+		uint32_t dummy[1];											/*!< Dummy */
 														/* Dummy: Consists of:						// v3 - >v18
 														 char callingParty[StationDynamicDirnumSize];		 	// 24 - 25
 														 char calledParty[StationDynamicDirnumSize];			// 24 - 25
@@ -2397,7 +2374,7 @@ typedef union {
 		uint32_t lel_buttonOffset;									/*!< Button OffSet */
 		uint32_t lel_buttonCount;									/*!< Button Count */
 		uint32_t lel_totalButtonCount;									/*!< Total Number of Buttons */
-		uint32_t dummy;											/*!< Station Button Definition */
+		uint32_t dummy[1];											/*!< Station Button Definition */
 	} ButtonTemplateMessageDynamic;										/*!< Identical to ButtonTemplateMessage */
 
 	struct {
@@ -2721,14 +2698,14 @@ typedef union {
 		uint32_t lel_softKeyOffset;									/*!< Soft Key Off Set */
 		uint32_t lel_softKeyCount;									/*!< Soft Key Count */
 		uint32_t lel_totalSoftKeyCount;									/*!< Total Number of Soft Keys */
-		StationSoftKeyDefinition definition[1];								/*!< Station Soft Key Definition (dummy) */
+		StationSoftKeyDefinition definition[StationMaxSoftKeyDefinition];				/*!< Station Soft Key Definition: Max:32 */
 	} SoftKeyTemplateResMessage;										/*!< Soft Key Template Result Message Structure */
 
 	struct {
 		uint32_t lel_softKeySetOffset;									/*!< Soft Key Off Set */
 		uint32_t lel_softKeySetCount;									/*!< Soft Key Count */
 		uint32_t lel_totalSoftKeySetCount;								/*!< Total Number of Soft Keys */
-		StationSoftKeySetDefinition definition[StationMaxSoftKeySetDefinition];				/*!< Station Soft Key Definition */
+		StationSoftKeySetDefinition definition[StationMaxSoftKeySetDefinition];				/*!< Station Soft Key Definition: Max:16*/
 	} SoftKeySetResMessage;											/*!< Soft Key Set Result Message Structure */
 
 	struct {
@@ -2742,13 +2719,14 @@ typedef union {
 		uint32_t lel_callState;										/*!< Call State: ENUM: skinny_callstate_ */
 		uint32_t lel_lineInstance;									/*!< Line Instance */
 		uint32_t lel_callReference;									/*!< Call Reference */
-		uint32_t lel_visibility;									/*!< Visibility / Privacy: ENUM : skinny_callinfo_ */
+		skinny_callinfo_visibility_t lel_visibility;							/*!< Visibility / Privacy: ENUM : none, limited, full */
 		struct {
 			uint32_t lel_level;									/*!< Level */
 			uint32_t lel_domain;									/*!< Domain */
 		} precedence;											/*!< Precedency / Priority */
 	} CallStateMessage;											/*!< Call State Message Structure */
 
+	/* display prompt */
 	struct {
 		uint32_t lel_messageTimeout;									/*!< Message Timeout */
 		char promptMessage[32];										/*!< Prompt Message (Max Lenght 32) */
@@ -2757,18 +2735,55 @@ typedef union {
 	} DisplayPromptStatusMessage;										/*!< Display Prompt Status Message Structure */
 
 	struct {
+		uint32_t lel_messageTimeout;									/*!< Message Timeout */
+		uint32_t lel_lineInstance;									/*!< Line Instance  */
+		uint32_t lel_callReference;									/*!< Call Reference */
+		/* here follow the message string
+		 * take care rest of size should
+		 * be calculated with string
+		 * size + 1 (NULL TERMINATION)
+		 * padded by 4
+		 */
+		uint32_t dummy[1];											/*!< Dummy, this is just for addressing
+															MaxLength:97 */
+	} DisplayDynamicPromptStatusMessage;									/*!< Display Dynamic Prompt Status Message Structure */
+
+	struct {
 		uint32_t lel_lineInstance;									/*!< Line Instance */
 		uint32_t lel_callReference;									/*!< Call Reference */
 	} ClearPromptStatusMessage;										/*!< Clear Prompt Status Message Structure */
 
+	/* display notify */
 	struct {
 		uint32_t lel_displayTimeout;									/*!< Display Timeout */
 		char displayMessage[StationMaxDisplayNotifySize];						/*!< Display Message */
 	} DisplayNotifyMessage;											/*!< Display Notify Message Structure */
 
+	struct {												// OK
+		uint32_t lel_displayTimeout;
+		uint32_t dummy[1];
+	} DisplayDynamicNotifyMessage;										// 0x0143
+
 	struct {
 		uint8_t dummy;
 	} ClearNotifyMessage;											/*!< Clear Notify Message Structure */
+
+	/* display pri notify */
+	struct {
+		uint32_t lel_displayTimeout;									/*!< Display Timeout */
+		uint32_t lel_priority;										/*!< Priority */
+		char displayMessage[StationMaxDisplayNotifySize];						/*!< Display Message */
+	} DisplayPriNotifyMessage;										/*!< Display Priority Notify Message Structure */
+
+	struct {												// OK
+		uint32_t lel_displayTimeout;
+		uint32_t lel_priority;
+		uint32_t dummy[1];
+	} DisplayDynamicPriNotifyMessage;									// 0x0144;
+
+	struct {
+		uint32_t lel_priority;										/*!< Priority */
+	} ClearPriNotifyMessage;										/*!< Clear Priority Notify Message Structure */
 
 	/* 0x11F FeatureStatMessage */
 	struct {
@@ -2786,7 +2801,7 @@ typedef union {
 
 	struct {												// Used Above Protocol 7 */
 		uint32_t lel_serviceURLIndex;									/*!< Service URL Index */
-		uint32_t dummy;											/*!< Dummy */
+		uint32_t dummy[1];										/*!< Dummy */
 	} ServiceURLStatDynamicMessage;										/*!< Service URL Stat Message Structure */
 
 	struct {
@@ -2928,16 +2943,6 @@ typedef union {
 			} v17;
 		};
 	} StartMultiMediaTransmissionAck;									/*!< Start Media Transmission Acknowledgement Structure */
-
-	struct {
-		uint32_t lel_displayTimeout;									/*!< Display Timeout */
-		uint32_t lel_priority;										/*!< Priority */
-		char displayMessage[StationMaxDisplayNotifySize];						/*!< Display Message */
-	} DisplayPriNotifyMessage;										/*!< Display Priority Notify Message Structure */
-
-	struct {
-		uint32_t lel_priority;										/*!< Priority */
-	} ClearPriNotifyMessage;										/*!< Clear Priority Notify Message Structure */
 
 	struct {
 		uint32_t lel_lineInstance;									/*!< Line Instance */

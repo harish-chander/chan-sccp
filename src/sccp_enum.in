@@ -1006,8 +1006,8 @@ strenum g723BitRate {
 enum ipAddr {
 	SKINNY_IPADDR_IPV4,			=0x0,	"IPv4",
 	SKINNY_IPADDR_IPV6,			=0x1,	"IPv6",
-	SKINNY_IPADDR_IPV46,		=0x2,	"IPv4 and IPv6",
-	SKINNY_IPADDR_INVALID,		=0x3,	"Ip Invalid",
+	SKINNY_IPADDR_IPV46,			=0x2,	"IPv4 and IPv6",
+	SKINNY_IPADDR_INVALID,			=0x3,	"Ip Invalid",
 }
 
 } /* NAMESPACE skinny */
