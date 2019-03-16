@@ -122,11 +122,11 @@ MEDIA_ENCRYPTION_SUPPORT, STATION_MAX_FEATURE_MASK, INTERNALIZATION
 #define SKINNY_MEDIA_SILENCESUPPRESSION_OFF 		0
 #define SKINNY_MEDIA_SILENCESUPPRESSION_ON		1
 
-/* media echo cancel */
+/* media echo cancel -> enum*/
 #define SKINNY_MEDIA_ECHOCANCELLATION_OFF		0
 #define SKINNY_MEDIA_ECHOCANCELLATION_ON		1
 
-/* G723 bitrate */
+/* G723 bitrate -> enum */
 #define SKINNY_MEDIA_G723BRATE_NONE 			0
 #define SKINNY_MEDIA_G723BRATE_5_3			1
 #define SKINNY_MEDIA_G723BRATE_6_4			2
@@ -313,6 +313,7 @@ typedef enum {
 	ServiceURLStatMessage 				= 0x012F,
 	CallSelectStatMessage 				= 0x0130,
 	OpenMultiMediaChannelMessage 			= 0x0131,
+	OpenMultiMediaChannelMessageNew			= 0x0131,
 	StartMultiMediaTransmission 			= 0x0132,
 	StopMultiMediaTransmission 			= 0x0133,
 	MiscellaneousCommandMessage 			= 0x0134,
@@ -385,6 +386,12 @@ typedef enum {
 
 
 /*=====================================================================================================*/
+
+typedef struct
+{
+  skinny_ipAddr_t lel_ipAddrType;
+  uint8_t stationIpAddr[16];
+} skinny_ipAddress_t;
 
 /*!
  * \brief SKINNY Station Identifier Structure
@@ -510,6 +517,14 @@ typedef struct {
 	uint32_t lel_pixelclockDivisor;										/*!< Picture Pixel Divisor */
 } customPictureFormat_t;											/*!< SKINNY Picture Format Structure */
 
+typedef struct
+{
+  uint8_t codecMode;
+  uint8_t dynamicPayload;
+  uint8_t codecParam1;
+  uint8_t codecParam2;
+} CodecParameters_t;
+
 typedef union {
 	uint32_t lel_g723BitRate;										/*!< G723 Bit Rate : Enum(5.3: 0x01, 6.3: 0x02) */
 	struct {
@@ -526,12 +541,7 @@ typedef union {
 		uint32_t lel_standardSupportField;
 		uint32_t lel_vendorSupportField;
 	} SupportEntry;
-	struct {
-		uint8_t codecMode ;
-		uint8_t dynamicPayload;
-		uint8_t codecParam1;
-		uint8_t codecParam2;
-	} codecParams;
+	CodecParameters_t codecParams;
 } payload_t;
 
 /*!
@@ -590,10 +600,10 @@ typedef struct {
 typedef struct {
 	uint32_t lel_profile;											/*!< H264 profile */
 	uint32_t lel_level;											/*!< H264 level */
-	//uint32_t lel_customMaxMBPS;
-	//uint32_t lel_customMaxFS;
-	//uint32_t lel_customMaxDPB;
-	//uint32_t lel_customMaxBRandCPB;
+	uint32_t lel_customMaxMBPS;										/*!< max decoding speed (in macroblocks/s) */
+	uint32_t lel_customMaxFS;										/*!< max frame size (in macroblocks) */
+	uint32_t lel_customMaxDPB;										/*!< decoded picture buffering */
+	uint32_t lel_customMaxBRandCPB;										/*!< */
 } h264_VideoCapability_t;
 
 typedef union {
@@ -738,6 +748,62 @@ typedef struct {
 		uint8_t FutureUse3;
 	} dynamicPayload;
 } skinny_latentCapsInfo_t;
+
+
+/*
+========================================
+Begin OpenMultiMediaChannelMessageNew
+----------------------------------------
+*/
+typedef struct
+{
+	skinny_echoCancellaton_t ecValue;
+	union {
+		skinny_g723BitRate_t g723BitRate;
+		CodecParameters_t codecParams;
+	} codecParamsUnion;
+} skinny_MediaQualifierIncoming_t;
+
+typedef struct
+{
+	uint32_t lel_millisecondPacketSize;
+	skinny_MediaQualifierIncoming_t qualifierIn;
+} skinny_MediaAudioIncomingParameters_t;
+
+typedef union
+{
+	h261_VideoCapability_t h261;
+	h263_VideoCapability_t h263;
+	h263P_VideoCapability_t h263P;
+	h264_VideoCapability_t h264;
+} skinny_ChannelVideoParametersUnion_t;
+
+typedef struct
+{
+	uint32_t lel_bitRate;
+	uint32_t lel_pictureFormatCount;
+	pictureFormat_t pictureFormat[5];
+	uint32_t lel_confServiceNum;
+	skinny_ChannelVideoParametersUnion_t capability;
+} skinny_ChannelVideoParameters_t;
+
+typedef union
+{
+	skinny_MediaAudioIncomingParameters_t audioParameters;
+	skinny_ChannelVideoParameters_t vidParameters;
+	dataParameter_t dataParameters;
+} skinny_OpenMultiMediaReceiveChannelUnion_t;
+
+typedef struct
+{
+	uint32_t lel_payload_rfc_number;
+	uint32_t lel_payloadType;
+} skinny_RTPPayloadType_t;
+/*
+========================================
+End OpenMultiMediaChannelMessageNew
+----------------------------------------
+*/
 
 /*!
  * \brief SKINNY Protocol Message Data Union
@@ -2071,7 +2137,8 @@ typedef union {
 														   little-endian. */
 				uint32_t lel_remotePortNumber;							/*!< Remote Port Number */
 				uint32_t lel_millisecondPacketSize;						/*!< Packet Size per MilliSecond */
-				uint32_t lel_payloadType;							/*!< Media_PayloadType */
+				//uint32_t lel_payloadType;							/*!< Media_PayloadType */
+				skinny_codec_t lel_codecType;							/*!< Skinny Codec Type / Compression Type */
 				uint32_t lel_precedenceValue;							/*!< Precedence Value */
 				uint32_t lel_ssValue;								/*!< Silence Suppression Value */
 				uint32_t lel_maxFramesPerPacket;						/*!< Maximum Frames per Packet */
@@ -2108,7 +2175,8 @@ typedef union {
 														   little-endian. */
 				uint32_t lel_remotePortNumber;							/*!< Remote Port Number */
 				uint32_t lel_millisecondPacketSize;						/*!< Packet Size per Millisecond */
-				uint32_t lel_payloadType;							/*!< Media_PayloadType */
+				//uint32_t lel_payloadType;							/*!< Media_PayloadType */
+				skinny_codec_t lel_codecType;							/*!< Skinny Codec Type / Compression Type */
 				uint32_t lel_precedenceValue;							/*!< Precedence Value */
 				uint32_t lel_ssValue;								/*!< Silence Suppression Value */
 				uint32_t lel_maxFramesPerPacket;						/*!< Maximum Frames per Packet */
@@ -2132,7 +2200,8 @@ typedef union {
 														   little-endian. */
 				uint32_t lel_remotePortNumber;							/*!< Remote Port Number */
 				uint32_t lel_millisecondPacketSize;						/*!< Packet Size per Millisecond */
-				uint32_t lel_payloadType;							/*!< Media_PayloadType */
+				//uint32_t lel_payloadType;							/*!< Media_PayloadType */
+				skinny_codec_t lel_codecType;							/*!< Skinny Codec Type / Compression Type */
 				uint32_t lel_precedenceValue;							/*!< Precedence Value */
 				uint32_t lel_ssValue;								/*!< Silence Suppression Value */
 				uint32_t lel_maxFramesPerPacket;						/*!< Maximum Frames per Packet */
@@ -2536,7 +2605,8 @@ typedef union {
 				uint32_t lel_conferenceId;							/*!< Conference ID */
 				uint32_t lel_passThruPartyId;							/*!< Pass Through Party ID */
 				uint32_t lel_millisecondPacketSize;						/*!< Millisecond Packet Size */
-				uint32_t lel_payloadType;							/*!< Media_Payload Type */
+				//uint32_t lel_payloadType;							/*!< Media_Payload Type */
+				skinny_codec_t lel_codecType;							/*!< Skinny Codec Type / Compression Type */
 				uint32_t lel_vadValue;								/*!< Voice Activity Detection Value */
 				uint32_t lel_g723BitRate;							/*!< G.723 Payload (Only applies to G.723) */
 				/* protocol version 5 fields */
@@ -2568,7 +2638,8 @@ typedef union {
 				uint32_t lel_conferenceId;							/*!< Conference ID */
 				uint32_t lel_passThruPartyId;							/*!< Pass Through Party ID */
 				uint32_t lel_millisecondPacketSize;						/*!< Millisecond Packet Size */
-				uint32_t lel_payloadType;							/*!< Media_Payload Type */
+				//uint32_t lel_payloadType;							/*!< Media_Payload Type */
+				skinny_codec_t lel_codecType;							/*!< Skinny Codec Type / Compression Type */
 				uint32_t lel_vadValue;								/*!< Voice Activity Detection Value */
 				uint32_t lel_g723BitRate;							/*!< G.723 Payload (Only applies to G.723) */
 				/* protocol version 5 fields */
@@ -2584,14 +2655,15 @@ typedef union {
 				uint32_t lel_ipv46;								/*!< ipv4 / ipv6 */
 				char bel_remoteIpAddr[16];
 				uint32_t lel_remotePortNumber;							/*!< this is always 0xFA0 */
-				uint32_t lel_requestedIpAddrType;						/*!< Unknown */
+				skinny_ipAddr_t lel_requestedIpAddrType;					/*!< Unknown */
 			} v17;
 
 			struct {
 				uint32_t lel_conferenceId;							/*!< Conference ID */
 				uint32_t lel_passThruPartyId;							/*!< Pass Through Party ID */
 				uint32_t lel_millisecondPacketSize;						/*!< Millisecond Packet Size */
-				uint32_t lel_payloadType;							/*!< Media_Payload Type */
+				//uint32_t lel_payloadType;							/*!< Media_Payload Type */
+				skinny_codec_t lel_codecType;							/*!< Skinny Codec Type / Compression Type */
 				uint32_t lel_vadValue;								/*!< Voice Activity Detection Value */
 				uint32_t lel_g723BitRate;							/*!< G.723 Payload (Only applies to G.723) */
 				/* protocol version 5 fields */
@@ -2607,7 +2679,7 @@ typedef union {
 				uint32_t lel_ipv46;								/*!< ipv4 / ipv6 */
 				char bel_remoteIpAddr[16];
 				uint32_t lel_remotePortNumber;							/*!< this is always 0xFA0 */
-				uint32_t lel_requestedIpAddrType;						/*!< Unknown */
+				skinny_ipAddr_t lel_requestedIpAddrType;					/*!< Unknown */
 				uint32_t lel_audioLevelAdjustment;
 				skinny_latentCapsInfo_t latentCapsInfo;
 			} v22;
@@ -2726,33 +2798,51 @@ typedef union {
 	struct {
 		union {
 			struct {
-				uint32_t lel_conferenceID;							/*!< Conference ID */
-				uint32_t lel_passThruPartyId;							/*!< Pass Through Party ID */
-				skinny_codec_t lel_payloadCapability;						/*!< payload capability */
-				uint32_t lel_lineInstance;							/*!< Line Instance */
-				uint32_t lel_callReference;							/*!< Call Reference */
-				uint32_t lel_payload_rfc_number;						/*!<  */
-				uint32_t lel_payloadType;							/*!< payload type */
-				uint32_t lel_isConferenceCreator;						/*!< we can set it to 0 */
-
-				videoParameter_t videoParameter;						/*!< Video Parameter */
+				uint32_t lel_conferenceID;
+				uint32_t lel_passThruPartyID;
+				skinny_codec_t lel_codecType;
+				uint32_t lel_lineInstance;
+				uint32_t lel_callReference;
+				skinny_RTPPayloadType_t payloadType;
+				uint32_t lel_isConferenceCreator;
+				skinny_OpenMultiMediaReceiveChannelUnion_t capability;
+				EncryptionInfo RxEncryptionInfo;
+				uint32_t lel_streamPassThroughID;
+				uint32_t lel_associatedStreamID;
 			} v3;
-
 			struct {
-				uint32_t lel_conferenceID;							/*!< Conference ID */
-				uint32_t lel_passThruPartyId;							/*!< Pass Through Party ID */
-				skinny_codec_t lel_payloadCapability;						/*!< payload capability */
-				uint32_t lel_lineInstance;							/*!< Line Instance */
-				uint32_t lel_callReference;							/*!< Call Reference */
-				uint32_t lel_payload_rfc_number;						/*!<  */
-				uint32_t lel_payloadType;							/*!< payload type */
-				uint32_t lel_isConferenceCreator;						/*!< we can set it to 0 */
-
-				videoParameter_t videoParameter;						/*!< Video Parameter */
-				uint32_t lel_dummy[16];
+				uint32_t lel_conferenceID;
+				uint32_t lel_passThruPartyID;
+				skinny_codec_t lel_codecType;
+				uint32_t lel_lineInstance;
+				uint32_t lel_callReference;
+				skinny_RTPPayloadType_t payloadType;
+				uint32_t lel_isConferenceCreator;
+				skinny_OpenMultiMediaReceiveChannelUnion_t capability;
+				EncryptionInfo RxEncryptionInfo;
+				uint32_t lel_streamPassThroughID;
+				uint32_t lel_associatedStreamID;
+				uint32_t bel_sourceIpAddr;
+				uint32_t lel_sourcePortNumber;
+			} v12;
+			struct {
+				uint32_t lel_conferenceID;
+				uint32_t lel_passThruPartyID;
+				skinny_codec_t lel_codecType;
+				uint32_t lel_lineInstance;
+				uint32_t lel_callReference;
+				skinny_RTPPayloadType_t payloadType;
+				uint32_t lel_isConferenceCreator;
+				skinny_OpenMultiMediaReceiveChannelUnion_t capability;
+				EncryptionInfo RxEncryptionInfo;
+				uint32_t lel_streamPassThroughID;
+				uint32_t lel_associatedStreamID;
+				skinny_ipAddress_t sourceIpAddr;
+				uint32_t lel_sourcePortNumber;
+				skinny_ipAddr_t lel_requestedIpAddrType;
 			} v17;
 		};
-	} OpenMultiMediaChannelMessage;										/*!< Open Multi Media Channel Message Structure */
+	} OpenMultiMediaChannelMessage;
 
 	struct {
 		union {
@@ -2775,26 +2865,26 @@ typedef union {
 			 * 
 			 */
 			struct {
-				uint32_t lel_conferenceID;							/*!< Conference ID */
-				uint32_t lel_passThruPartyId;							/*!< Pass Through Party ID */
-				skinny_codec_t lel_payloadCapability;						/*!< payload capability */
-
+				uint32_t lel_conferenceID;							/*!< Conference ID */				// 0b 00 00 01
+				uint32_t lel_passThruPartyId;							/*!< Pass Through Party ID */			// 82 00 00 01
+				//skinny_codec_t lel_payloadCapability;						/*!< payload capability */			// 67 00 00 00 = codec 103
+				skinny_codec_t lel_codecType;							/*!< Skinny Codec Type / Compression Type */	// 67 00 00 00 = codec 103 = H264
 				uint32_t bel_remoteIpAddr;							/*!< This field is apparently in big-endian
 														   format, even though most other fields are
-														   little-endian. */
-				uint32_t lel_remotePortNumber;							/*!< Remote Port Number */
-				uint32_t lel_callReference;							/*!< Call Reference */
-				uint32_t lel_payload_rfc_number;						/*!< Payload RFC Number */
-				uint32_t lel_payloadType;							/*!< payload type */
-				uint32_t lel_DSCPValue;								/*!< DSCP Value */
-
+														   little-endian. */				// ac 11 01 66
+				uint32_t lel_remotePortNumber;							/*!< Remote Port Number */			// 45 15 00 00
+				uint32_t lel_callReference;							/*!< Call Reference */				// 0b 00 00 01
+				uint32_t lel_payload_rfc_number;						/*!< Payload RFC Number */			// 00 00 00 00
+				uint32_t lel_payloadType;							/*!< payload type */				// 61 00 00 00 = payload 97  == rtpmap
+				uint32_t lel_DSCPValue;								/*!< DSCP Value */				// 88 00 00 00
 				videoParameter_t videoParameter;						/*!< Video Parameter */
 			} v3;
 
 			struct {
 				uint32_t lel_conferenceID;							/*!< Conference ID */
 				uint32_t lel_passThruPartyId;							/*!< Pass Through Party ID */
-				skinny_codec_t lel_payloadCapability;						/*!< payload capability */
+				//skinny_codec_t lel_payloadCapability;						/*!< payload capability */
+				skinny_codec_t lel_codecType;							/*!< Skinny Codec Type / Compression Type */	// 67 00 00 00 = codec 103 = H264
 				uint32_t lel_ipv46;								/*!<  */
 
 				char bel_remoteIpAddr[16];							/*!< This field is apparently in big-endian
