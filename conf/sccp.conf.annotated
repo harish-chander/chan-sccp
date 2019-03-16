@@ -274,6 +274,15 @@ regexten = ""                                                                   
 ;
 ; softkey section
 ;
+;-----------------------------------------------------------------------------------
+;create a user defined softkeyset
+; - if not softkey is not specified in device the chan-sccp-b default mapping will be used
+; - multiple softkeysets are possible
+;
+;valid softkeys:
+;redial, newcall, cfwdall, cfwdbusy, cfwdnoanswer, pickup, gpickup, conflist, dnd, hold, endcall, park, select
+;idivert, resume, newcall, transfer, dirtrfr, answer, transvm, private, meetme, barge, cbarge, conf, back, join, empty, dial, vidmode
+
 ;[mysoftkeyset]
 ;type = softkeyset                                                                ; (SIZE: -1) This should be set to softkeyset
 ;onhook = redial,newcall,cfwdall,dnd,pickup,gpickup,private                       ; (SIZE: 15) displayed when we are on hook

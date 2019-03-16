@@ -2086,7 +2086,7 @@ void sccp_dev_check_displayprompt(constDevicePtr d)
 	for (i = SCCP_MAX_MESSAGESTACK - 1; i >= 0; i--) {
 		if (d->messageStack.messages[i] != NULL && !sccp_strlen_zero(d->messageStack.messages[i])) {
 			//if (!d->hasDisplayPrompt() && d->hasLabelLimitedDisplayPrompt()) {			// 89xx can only do popups no statusbar
-			//	sccp_dev_displayprinotify(d, d->messageStack.messages[i], (sccp_message_priority_t) i, 0);
+				//sccp_dev_displayprinotify(d, d->messageStack.messages[i], (sccp_message_priority_t) i, 0);
 				//sccp_dev_displaynotify(d, d->messageStack.messages[i], 0);
 			//} else {
 				sccp_dev_displayprompt(d, 0, 0, d->messageStack.messages[i], 0);
@@ -3201,9 +3201,7 @@ void sccp_device_featureChangedDisplay(const sccp_event_t * event)
 
 			break;
 		case SCCP_FEATURE_DND:
-			if (!device->dndFeature.status) {
-				sccp_device_clearMessageFromStack(device, SCCP_MESSAGE_PRIORITY_DND);
-			} else {
+			if (device->dndFeature.status) {
 				char dndmsg[StationMaxDisplayNotifySize];
 				if (!device->dndmode) {										// running in try state/cycle mode
 					if (device->dndFeature.status == SCCP_DNDMODE_SILENT) {
@@ -3222,6 +3220,8 @@ void sccp_device_featureChangedDisplay(const sccp_event_t * event)
 				} else {											// 79xx and 89xx series
 					sccp_device_addMessageToStack(device, SCCP_MESSAGE_PRIORITY_DND, dndmsg);
 				}
+			} else {
+				sccp_device_clearMessageFromStack(device, SCCP_MESSAGE_PRIORITY_DND);
 			}
 			break;
 		case SCCP_FEATURE_PRIVACY:
