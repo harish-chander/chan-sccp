@@ -2308,7 +2308,7 @@ typedef union {
 		char lineFullyQualifiedDisplayName[StationMaxNameSize];						/*!< Line Fully Qualified Display Name */
 		//char lineDisplayName[StationMaxButtonTemplateNameSize];					/*!< Line Display Name */
 		char lineDisplayName[StationMaxNameSize];
-		uint32_t lineDisplayOptions;
+		uint32_t lel_lineDisplayOptions;
 	} LineStatMessage;											/*!< Line Status Messages Structure */
 
 	struct {
