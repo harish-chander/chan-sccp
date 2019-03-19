@@ -1707,7 +1707,7 @@ static PBX_CHANNEL_TYPE *sccp_astwrap_request(const char *type, struct ast_forma
 				SCCP_CALLINFO_KEY_SENTINEL);
 	}
 EXITFUNC:
-	if (channel) {
+	if (channel && channel->owner) {
 		result_ast_channel = channel->owner;
 		if (callid) {
 			ast_channel_callid_set(result_ast_channel, callid);

@@ -702,6 +702,7 @@ boolean_t sccp_pbx_channel_allocate(sccp_channel_t * channel, const void *ids, c
 
 	sccp_log((DEBUGCAT_PBX + DEBUGCAT_CHANNEL)) (VERBOSE_PREFIX_3 "SCCP: (pbx_channel_allocate) try to allocate %s channel on line: %s\n", skinny_calltype2str(c->calltype), l->name);
 	/* Don't hold a sccp pvt lock while we allocate a channel */
+	char s1[512], s2[512];
 
 	char cid_name[StationMaxNameSize] = {0};
 	char cid_num[StationMaxDirnumSize] = {0};
@@ -777,6 +778,20 @@ boolean_t sccp_pbx_channel_allocate(sccp_channel_t * channel, const void *ids, c
 		// make sure preferences only contains the codecs that this channel is capable of
 		sccp_codec_reduceSet(c->preferences.audio , c->capabilities.audio);
 		sccp_codec_reduceSet(c->preferences.video , c->capabilities.video);
+		if (c->preferences.audio[0] == SKINNY_CODEC_NONE) {
+			pbx_log(LOG_ERROR, "%s: Expect trouble ahead.\n"
+				"The audio preferences:%s of this channel have been reduced to nothing.\n"
+				"Because they are not compatible with this %s capabilities:%s.\n"
+				"Please fix your config. Ending Call !.\n",
+				c->designator, 
+				sccp_codec_multiple2str(s2, sizeof(s2) - 1, c->preferences.audio, SKINNY_MAX_CAPABILITIES),
+				l->preferences_set_on_line_level ? "line's" : "device's",
+				sccp_codec_multiple2str(s1, sizeof(s1) - 1, c->capabilities.audio, SKINNY_MAX_CAPABILITIES));
+			//if (d) {
+			//	sccp_indicate(d, c, SCCP_CHANNELSTATE_CONGESTION);
+			//}
+			return FALSE;
+		}
 	}
 	sccp_log((DEBUGCAT_PBX + DEBUGCAT_CHANNEL)) (VERBOSE_PREFIX_3 "SCCP:              cid_num: \"%s\"\n", cid_num);
 	sccp_log((DEBUGCAT_PBX + DEBUGCAT_CHANNEL)) (VERBOSE_PREFIX_3 "SCCP:             cid_name: \"%s\"\n", cid_name);
@@ -785,7 +800,6 @@ boolean_t sccp_pbx_channel_allocate(sccp_channel_t * channel, const void *ids, c
 	sccp_log((DEBUGCAT_PBX + DEBUGCAT_CHANNEL)) (VERBOSE_PREFIX_3 "SCCP:              context: \"%s\"\n", l->context);
 	sccp_log((DEBUGCAT_PBX + DEBUGCAT_CHANNEL)) (VERBOSE_PREFIX_3 "SCCP:             amaflags: \"%d\"\n", l->amaflags);
 	sccp_log((DEBUGCAT_PBX + DEBUGCAT_CHANNEL)) (VERBOSE_PREFIX_3 "SCCP:            chan/call: \"%s\"\n", c->designator);
-	char s1[512], s2[512];
 	sccp_log((DEBUGCAT_PBX + DEBUGCAT_CHANNEL)) (VERBOSE_PREFIX_3 "SCCP:combined capabilities: \"%s\"\n", sccp_codec_multiple2str(s1, sizeof(s1) - 1, c->capabilities.audio, SKINNY_MAX_CAPABILITIES));
 	sccp_log((DEBUGCAT_PBX + DEBUGCAT_CHANNEL)) (VERBOSE_PREFIX_3 "SCCP:  reduced preferences: \"%s\"\n", sccp_codec_multiple2str(s2, sizeof(s2) - 1, c->preferences.audio, SKINNY_MAX_CAPABILITIES));
 
