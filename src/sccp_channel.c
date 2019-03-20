@@ -1,5 +1,4 @@
-/*!
- * \file        sccp_channel.c
+                                     /*! * \file        sccp_channel.c
  * \brief       SCCP Channel Class
  * \author      Sergio Chersovani <mlists [at] c-net.it>
  * \date
@@ -194,13 +193,9 @@ channelPtr sccp_channel_allocate(constLinePtr l, constDevicePtr device)
 			channel->dtmfmode = SCCP_DTMFMODE_RFC2833;
 		}
 
-		if (l->preferences_set_on_line_level) {
-			memcpy(&channel->preferences.audio, &l->preferences.audio, sizeof channel->preferences.audio);
-			memcpy(&channel->preferences.video, &l->preferences.video, sizeof channel->preferences.video);
-		}
-
 		/* run setters */
 		sccp_line_addChannel(l, channel);
+		sccp_line_updateCapabilitiesFromDevicesToLine(refLine);				// bit of a hack, UpdateCapabilties is done (long) after device registration
 		channel->setDevice(channel, device);
 
 		/* return new channel */
@@ -294,25 +289,19 @@ void sccp_channel_setDevice(sccp_channel_t * const channel, const sccp_device_t 
 			sccp_linedevice_refreplace(&channel->privateData->linedevice, ld);
 		}
 		/*! \todo: Check/Fix codec selection on hold/resume */
-		if (channel->preferences.audio[0] == SKINNY_CODEC_NONE) {
-			memcpy(&channel->preferences.audio, &channel->privateData->device->preferences.audio, sizeof(channel->preferences.audio));
-		}
-		if (channel->capabilities.audio[0] == SKINNY_CODEC_NONE) {
-			memcpy(&channel->capabilities.audio, &channel->privateData->device->capabilities.audio, sizeof(channel->capabilities.audio));
+		if (channel->preferences.audio[0] == SKINNY_CODEC_NONE || channel->capabilities.audio[0] == SKINNY_CODEC_NONE) {
+			sccp_line_copyCodecSetsFromLineToChannel(channel->line, channel->privateData->device, channel);
 		}
 		sccp_copy_string(channel->currentDeviceId, channel->privateData->device->id, sizeof(char[StationMaxDeviceNameSize]));
 		channel->dtmfmode = channel->privateData->device->getDtmfMode(channel->privateData->device);
 		return;
 	}
 EXIT:
-	/* \todo instead of copying caps / prefs from global */
 	/*! \todo: Check/Fix codec selection on hold/resume */
-	if (channel->preferences.audio[0] == SKINNY_CODEC_NONE) {
-		memcpy(&channel->preferences.audio, &GLOB(global_preferences), sizeof(channel->preferences.audio));
+	if (channel->preferences.audio[0] == SKINNY_CODEC_NONE || channel->capabilities.audio[0] == SKINNY_CODEC_NONE) {
+		sccp_line_copyCodecSetsFromLineToChannel(channel->line, NULL, channel);
 	}
-	if (channel->capabilities.audio[0] == SKINNY_CODEC_NONE) {
-		memcpy(&channel->capabilities.audio, &GLOB(global_preferences), sizeof(channel->capabilities.audio));
-	}
+	
 	sccp_linedevice_refreplace(&channel->privateData->linedevice, NULL);
 	/* \todo we should use */
 	// sccp_line_copyMinimumCodecSetFromLineToChannel(l, c); 

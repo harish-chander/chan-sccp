@@ -4495,7 +4495,6 @@ void handle_updatecapabilities_V3_message(constSessionPtr s, devicePtr d, constM
 		}
 	}
 #endif
-
 }
 
 /*!
