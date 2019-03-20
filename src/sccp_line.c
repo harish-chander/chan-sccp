@@ -385,7 +385,7 @@ void sccp_line_copyCodecSetsFromLineToChannel(constLinePtr l, constDevicePtr may
 		memcpy(&c->preferences.audio, &GLOB(global_preferences), sizeof(c->preferences.audio));
 		memcpy(&c->preferences.video, &GLOB(global_preferences), sizeof(c->preferences.video));
 	}
-	
+
 	char s1[512], s2[512];
 	sccp_log_and((DEBUGCAT_LINE + DEBUGCAT_CODEC)) (VERBOSE_PREFIX_3 "%s: (copyCodecSetsFromLineToChannel) channel capabilities:%s\n", c->designator, sccp_codec_multiple2str(s1, sizeof(s1) - 1, c->capabilities.audio, SKINNY_MAX_CAPABILITIES));
 	sccp_log_and((DEBUGCAT_LINE + DEBUGCAT_CODEC)) (VERBOSE_PREFIX_3 "%s: (copyCodecSetsFromLineToChannel) channel preferences:%s\n", c->designator, sccp_codec_multiple2str(s2, sizeof(s2) - 1, c->preferences.audio, SKINNY_MAX_CAPABILITIES));
@@ -462,16 +462,28 @@ void sccp_line_updateCapabilitiesFromDevicesToLine(sccp_line_t *l)
 		l->capabilities.audio[1] = SKINNY_CODEC_G711_ALAW_56K;
 		l->capabilities.audio[2] = SKINNY_CODEC_G711_ULAW_64K;
 		l->capabilities.audio[3] = SKINNY_CODEC_G711_ULAW_56K;
-		l->capabilities.audio[4] = SKINNY_CODEC_G723_1;
 		l->capabilities.audio[5] = SKINNY_CODEC_WIDEBAND_256K;
-		l->capabilities.audio[6] = SKINNY_CODEC_G726_32K;
-		l->capabilities.audio[7] = SKINNY_CODEC_G726_24K;
-		l->capabilities.audio[8] = SKINNY_CODEC_G726_16K;
 		l->capabilities.audio[9] = SKINNY_CODEC_NONE;
 	}
 
 	char s1[512];
 	sccp_log_and((DEBUGCAT_LINE + DEBUGCAT_CODEC)) (VERBOSE_PREFIX_3 "%s: (updateCapabilitiesFromDevicesToLine) line capabilities:%s\n", l->name, sccp_codec_multiple2str(s1, sizeof(s1) - 1, l->capabilities.audio, SKINNY_MAX_CAPABILITIES));
+}
+
+void sccp_line_updateLineCapabilitiesByDevice(constDevicePtr d)
+{
+	if (!d) {
+		return;
+	}
+	int instance = 0;
+	for (instance = SCCP_FIRST_LINEINSTANCE; instance < d->lineButtons.size; instance++) {
+		if (d->lineButtons.instance[instance]) {
+			AUTO_RELEASE(sccp_linedevices_t, linedevice , sccp_linedevice_retain(d->lineButtons.instance[instance]));
+			if (linedevice && linedevice->line){
+				sccp_line_updateCapabilitiesFromDevicesToLine(linedevice->line);
+			}
+		}
+	}
 }
 
 /*!

@@ -4299,6 +4299,7 @@ void handle_updatecapabilities_message(constSessionPtr s, devicePtr d, constMess
 			}
 		}
 #endif
+		sccp_line_updateLineCapabilitiesByDevice(d);
 	}
 }
 /*!
@@ -4393,6 +4394,7 @@ void handle_updatecapabilities_V2_message(constSessionPtr s, devicePtr d, constM
 		}
 	}
 #endif
+	sccp_line_updateLineCapabilitiesByDevice(d);
 }
 
 /*!
@@ -4495,6 +4497,7 @@ void handle_updatecapabilities_V3_message(constSessionPtr s, devicePtr d, constM
 		}
 	}
 #endif
+	sccp_line_updateLineCapabilitiesByDevice(d);
 }
 
 /*!

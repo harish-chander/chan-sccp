@@ -162,6 +162,7 @@ SCCP_API sccp_channelstate_t SCCP_CALL sccp_line_getDNDChannelState(sccp_line_t 
 #endif
 SCCP_API void SCCP_CALL sccp_line_copyCodecSetsFromLineToChannel(constLinePtr l, constDevicePtr maybe_d, sccp_channel_t *c);
 SCCP_API void SCCP_CALL sccp_line_updateCapabilitiesFromDevicesToLine(sccp_line_t *l);
+SCCP_API void SCCP_CALL sccp_line_updateLineCapabilitiesByDevice(constDevicePtr d);
 SCCP_API void SCCP_CALL sccp_line_cfwd(constLinePtr line, constDevicePtr device, sccp_callforward_t type, char *number);
 
 SCCP_API void SCCP_CALL sccp_linedevice_resetPickup(sccp_linedevices_t * ld);

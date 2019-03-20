@@ -195,7 +195,9 @@ channelPtr sccp_channel_allocate(constLinePtr l, constDevicePtr device)
 
 		/* run setters */
 		sccp_line_addChannel(l, channel);
-		sccp_line_updateCapabilitiesFromDevicesToLine(refLine);				// bit of a hack, UpdateCapabilties is done (long) after device registration
+		if (refLine->capabilities.audio[0] == SKINNY_CODEC_NONE) {
+			sccp_line_updateCapabilitiesFromDevicesToLine(refLine);			// bit of a hack, UpdateCapabilties is done (long) after device registration
+		}
 		channel->setDevice(channel, device);
 
 		/* return new channel */
@@ -301,7 +303,7 @@ EXIT:
 	if (channel->preferences.audio[0] == SKINNY_CODEC_NONE || channel->capabilities.audio[0] == SKINNY_CODEC_NONE) {
 		sccp_line_copyCodecSetsFromLineToChannel(channel->line, NULL, channel);
 	}
-	
+
 	sccp_linedevice_refreplace(&channel->privateData->linedevice, NULL);
 	/* \todo we should use */
 	// sccp_line_copyMinimumCodecSetFromLineToChannel(l, c); 
@@ -318,12 +320,17 @@ static void sccp_channel_recalculateCodecFormat(sccp_channel_t * channel)
 
 	if (channel->rtp.audio.receiveChannelState == SCCP_RTP_STATUS_INACTIVE && channel->rtp.audio.mediaTransmissionState == SCCP_RTP_STATUS_INACTIVE) {
 		if (channel->privateData->device) {
-			preferences = (!channel->line->preferences_set_on_line_level) ? &(channel->privateData->device->preferences) : &(channel->preferences);
+			preferences = (channel->line->preferences_set_on_line_level) ? &(channel->preferences) : &(channel->privateData->device->preferences);
 			sccp_codec_reduceSet(preferences->audio, channel->privateData->device->capabilities.audio);
 			sccp_codec_reduceSet(preferences->video, channel->privateData->device->capabilities.video);
+		} else {
+			preferences = &(channel->preferences);
+			sccp_codec_reduceSet(preferences->audio, channel->capabilities.audio);
+			sccp_codec_reduceSet(preferences->video, channel->capabilities.video);
 		}
 		joint = sccp_codec_findBestJoint(channel, preferences->audio, channel->remoteCapabilities.audio);
 		if (SKINNY_CODEC_NONE == joint) {
+			sccp_log((DEBUGCAT_CODEC + DEBUGCAT_CHANNEL)) (VERBOSE_PREFIX_3 "%s: (recalculateCodecFormat) Looks like we are going to be transcoding\n", channel->designator);
 			joint = preferences->audio[0] ? preferences->audio[0] : SKINNY_CODEC_WIDEBAND_256K;
 		}
 		if (channel->rtp.audio.instance) {                      // Fix nativeAudioFormats
