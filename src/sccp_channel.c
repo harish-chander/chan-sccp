@@ -329,8 +329,8 @@ static void sccp_channel_recalculateCodecFormat(sccp_channel_t * channel)
 			sccp_codec_reduceSet(preferences->video, channel->capabilities.video);
 		}
 		joint = sccp_codec_findBestJoint(channel, preferences->audio, channel->remoteCapabilities.audio);
+		//joint = sccp_codec_findBestJoint(channel, preferences->video, channel->remoteCapabilities.video);
 		if (SKINNY_CODEC_NONE == joint) {
-			sccp_log((DEBUGCAT_CODEC + DEBUGCAT_CHANNEL)) (VERBOSE_PREFIX_3 "%s: (recalculateCodecFormat) Looks like we are going to be transcoding\n", channel->designator);
 			joint = preferences->audio[0] ? preferences->audio[0] : SKINNY_CODEC_WIDEBAND_256K;
 		}
 		if (channel->rtp.audio.instance) {                      // Fix nativeAudioFormats
@@ -1378,13 +1378,21 @@ channelPtr sccp_channel_getEmptyChannel(constLinePtr l, constDevicePtr d, channe
 	channel->calltype = calltype;
 	if (!sccp_pbx_channel_allocate(channel, ids, parentChannel)) {
 		pbx_log(LOG_WARNING, "%s: Unable to allocate a new channel for line %s\n", d->id, l->name);
-		sccp_indicate(d, channel, SCCP_CHANNELSTATE_CONGESTION);
-		sccp_channel_endcall(channel);
+		if (channel->owner) {
+			sccp_indicate(d, channel, SCCP_CHANNELSTATE_CONGESTION);
+			sccp_channel_endcall(channel);
+		} else {
+			sccp_indicate(d, channel, SCCP_CHANNELSTATE_ONHOOK);
+			if (channel->line) {
+				sccp_line_removeChannel(channel->line, channel);
+			}
+			sccp_channel_clean(channel);
+			sccp_channel_release(&channel);
+		}
 		return NULL;
 	}
 	return channel;
 }
-
 
 /*!
  * \brief Allocate a new Outgoing Channel.

@@ -307,7 +307,7 @@ int sccp_codec_getReducedSet(skinny_codec_t base[SKINNY_MAX_CAPABILITIES], const
 			if (base[x] == reduceByCodecs[y]) {
 				result[z++] = base[x];
 				overlap++;
-				break;
+				//break;
 			}
 		}
 	}

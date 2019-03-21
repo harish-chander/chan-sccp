@@ -457,13 +457,12 @@ void sccp_line_updateCapabilitiesFromDevicesToLine(sccp_line_t *l)
 
 	// use a minimal default set, all devices should be able to support (last resort)
 	if (l->capabilities.audio[0] == SKINNY_CODEC_NONE) {
-		pbx_log(LOG_WARNING, "%s: (updateCapabilitiesFromDevicesToLine) Could not retrieve capabilities from line or device. Unsion Fallback Codecs\n", l->name);
+		pbx_log(LOG_WARNING, "%s: (updateCapabilitiesFromDevicesToLine) Could not retrieve capabilities from line or device. Using Fallback Codecs Alaw/Ulaw\n", l->name);
 		l->capabilities.audio[0] = SKINNY_CODEC_G711_ALAW_64K;
 		l->capabilities.audio[1] = SKINNY_CODEC_G711_ALAW_56K;
 		l->capabilities.audio[2] = SKINNY_CODEC_G711_ULAW_64K;
 		l->capabilities.audio[3] = SKINNY_CODEC_G711_ULAW_56K;
-		l->capabilities.audio[5] = SKINNY_CODEC_WIDEBAND_256K;
-		l->capabilities.audio[9] = SKINNY_CODEC_NONE;
+		l->capabilities.audio[4] = SKINNY_CODEC_NONE;
 	}
 
 	char s1[512];

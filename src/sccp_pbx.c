@@ -781,9 +781,6 @@ boolean_t sccp_pbx_channel_allocate(sccp_channel_t * channel, const void *ids, c
 				sccp_codec_multiple2str(s2, sizeof(s2) - 1, c->preferences.audio, SKINNY_MAX_CAPABILITIES),
 				l->preferences_set_on_line_level ? "line's" : "device's",
 				sccp_codec_multiple2str(s1, sizeof(s1) - 1, c->capabilities.audio, SKINNY_MAX_CAPABILITIES));
-			//if (d) {
-			//	sccp_indicate(d, c, SCCP_CHANNELSTATE_CONGESTION);
-			//}
 			return FALSE;
 		}
 	}
