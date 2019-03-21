@@ -107,6 +107,7 @@ struct sccp_global_vars {
 	boolean_t transfer;											/*!< Transfer Feature Enabled */
 
 	char *meetmeopts;											/*!< Meetme Options to be Used */
+	char *iconvcodepage;											/*!< Iconv Codepage to use during conversion from UTF-8, for old phone models */
 	sccp_group_t callgroup;											/*!< Call Group */
 #ifdef CS_SCCP_PICKUP
 	sccp_group_t pickupgroup;										/*!< PickUp Group */

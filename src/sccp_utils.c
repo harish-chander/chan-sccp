@@ -1831,7 +1831,8 @@ static sccp_mutex_t __iconv_lock;
 
 static void __attribute__((constructor)) __start_iconv(void)
 {
-	__sccp_iconv = iconv_open("ISO8859-1", "UTF-8");
+	//__sccp_iconv = iconv_open("ISO8859-1", "UTF-8");
+	__sccp_iconv = iconv_open(GLOB(iconvcodepage), "UTF-8");
 	if (__sccp_iconv == (iconv_t) -1) {
 		pbx_log(LOG_ERROR, "SCCP:conversion from 'UTF-8' to 'ISO8859-1' not available.\n");
 	}
