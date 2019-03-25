@@ -535,23 +535,34 @@ static void __find_joint_capabilities(sccp_channel_t *c, PBX_CHANNEL_TYPE* peer,
 			if (ast_format_cap_count(joint) > 0) {
 				best_fmt_native = ast_format_cap_get_best_by_type(joint, media_type);
 				sccp_log(DEBUGCAT_CODEC) (VERBOSE_PREFIX_4 "%s: (find_joint_capabilities) NOT transcoding, best_native:%s\n", c->designator, ast_format_get_codec_name(best_fmt_native));
-				ast_format_cap_remove_by_type(caps, media_type);
-				ast_format_cap_append(caps, best_fmt_native, media_type);
+				if (best_fmt_native) {
+					ast_format_cap_remove_by_type(caps, media_type);
+					ast_format_cap_append(caps, best_fmt_native, media_type);
+				}
 				ast_format_cap_append_from_cap(caps, joint, media_type);
-				ast_format_cap_append_from_cap(caps, ast_channel_nativeformats(c->owner), AST_MEDIA_TYPE_UNKNOWN);
 			} else {
 				ast_translator_best_choice(remote_caps, caps, &best_fmt_cap, &best_fmt_native);
-				sccp_log(DEBUGCAT_CODEC) (VERBOSE_PREFIX_4 "%s: (find_joint_capabilities) transcoding, best_native:%s\n", c->designator, ast_format_get_codec_name(best_fmt_native));
-				ao2_ref(best_fmt_native, +1);
-				ast_format_cap_remove_by_type(caps, media_type);
-				ast_format_cap_append(caps, best_fmt_cap, media_type);
+				if (best_fmt_native) {
+					ao2_ref(best_fmt_native, +1);
+					ast_format_cap_remove_by_type(caps, media_type);
+					ast_format_cap_append(caps, best_fmt_cap, media_type);
+				} else {
+					best_fmt_native = ast_format_cap_get_best_by_type(caps, media_type);
+					ao2_ref(best_fmt_native, +1);
+				}
 				ast_format_cap_append_from_cap(caps, joint, media_type);
-				ast_format_cap_append_from_cap(caps, ast_channel_nativeformats(c->owner), AST_MEDIA_TYPE_UNKNOWN);
+				sccp_log(DEBUGCAT_CODEC) (VERBOSE_PREFIX_3 "%s: pbx_retrieve_remote_capabilities: transcoding, best_cap:%s, best_native:%s\n",
+					c->designator, ast_format_get_codec_name(best_fmt_cap), best_fmt_native ? ast_format_get_codec_name(best_fmt_native) : "");
 			}
-			if (best_fmt_native != ast_format_none && ast_format_cap_count(caps) > 0) {
-				sccp_log(DEBUGCAT_CODEC) (VERBOSE_PREFIX_4 "%s: (find_joint_capabilities) using: caps:%s, codec:%s\n", c->designator, ast_format_cap_get_names(caps, &codec_buf), ast_format_get_codec_name(best_fmt_native));
-				ast_channel_lock(owner);
-				ast_channel_nativeformats_set(c->owner, caps);
+
+			ast_format_cap_append_from_cap(caps, ast_channel_nativeformats(c->owner), AST_MEDIA_TYPE_UNKNOWN);
+			if (best_fmt_native != ast_format_none) {
+				if (ast_format_cap_count(caps) > 0) {
+					ast_channel_lock(owner);
+					ast_channel_nativeformats_set(c->owner, caps);
+					ast_channel_unlock(owner);
+					sccp_log(DEBUGCAT_CODEC) (VERBOSE_PREFIX_4 "%s: (find_joint_capabilities) using: caps:%s, codec:%s\n", c->designator, ast_format_cap_get_names(caps, &codec_buf), ast_format_get_codec_name(best_fmt_native));
+				}
 				if (AST_MEDIA_TYPE_AUDIO == media_type) {
 					ast_channel_set_writeformat(c->owner, best_fmt_native);
 					ast_channel_set_readformat(c->owner, best_fmt_native);
@@ -567,7 +578,6 @@ static void __find_joint_capabilities(sccp_channel_t *c, PBX_CHANNEL_TYPE* peer,
 					ast_rtp_instance_set_write_format(c->rtp.video.instance, best_fmt_native);
 					ast_rtp_instance_set_read_format(c->rtp.video.instance, best_fmt_native);
 				}
-				ast_channel_unlock(owner);
 			}
 			ao2_ref(best_fmt_native, -1);
 		}

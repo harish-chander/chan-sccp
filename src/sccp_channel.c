@@ -340,14 +340,11 @@ static void sccp_channel_recalculateAudioCodecFormat(sccp_channel_t * channel)
 		if (channel->privateData->device) {
 			preferences = (channel->line->preferences_set_on_line_level) ? &(channel->preferences) : &(channel->privateData->device->preferences);
 			sccp_codec_reduceSet(preferences->audio, channel->privateData->device->capabilities.audio);
-			sccp_codec_reduceSet(preferences->video, channel->privateData->device->capabilities.video);
 		} else {
 			preferences = &(channel->preferences);
 			sccp_codec_reduceSet(preferences->audio, channel->capabilities.audio);
-			sccp_codec_reduceSet(preferences->video, channel->capabilities.video);
 		}
 		joint = sccp_codec_findBestJoint(channel, preferences->audio, channel->remoteCapabilities.audio);
-		//joint = sccp_codec_findBestJoint(channel, preferences->video, channel->remoteCapabilities.video);
 		if (SKINNY_CODEC_NONE == joint) {
 			joint = preferences->audio[0] ? preferences->audio[0] : SKINNY_CODEC_WIDEBAND_256K;
 		}
@@ -360,8 +357,6 @@ static void sccp_channel_recalculateAudioCodecFormat(sccp_channel_t * channel)
 		if (channel->rtp.audio.receiveChannelState == SCCP_RTP_STATUS_INACTIVE) {
 			channel->rtp.audio.writeFormat = joint;
 			iPbx.rtp_setWriteFormat(channel, joint);
-		//}
-		//if (channel->rtp.audio.mediaTransmissionState == SCCP_RTP_STATUS_INACTIVE) {
 			channel->rtp.audio.readFormat = joint;
 			iPbx.rtp_setReadFormat(channel, joint);
 		}
@@ -392,10 +387,16 @@ static void sccp_channel_recalculateVideoCodecFormat(sccp_channel_t * channel)
 
 	if (channel->rtp.video.receiveChannelState == SCCP_RTP_STATUS_INACTIVE && channel->rtp.video.mediaTransmissionState == SCCP_RTP_STATUS_INACTIVE) {
 		if (channel->privateData->device) {
-			preferences = (!channel->line->preferences_set_on_line_level) ? &(channel->privateData->device->preferences) : &(channel->preferences);
+			preferences = (channel->line->preferences_set_on_line_level) ? &(channel->preferences) : &(channel->privateData->device->preferences);
 			sccp_codec_reduceSet(preferences->video, channel->privateData->device->capabilities.video);
+		} else {
+			preferences = &(channel->preferences);
+			sccp_codec_reduceSet(preferences->video, channel->capabilities.video);
 		}
 		joint = sccp_codec_findBestJoint(channel, preferences->video, channel->remoteCapabilities.video);
+		if (SKINNY_CODEC_NONE == joint) {
+			joint = preferences->video[0];
+		}
 		if (channel->rtp.video.instance && joint != SKINNY_CODEC_NONE) {
 			skinny_codec_t codecs[SKINNY_MAX_CAPABILITIES] = { joint, SKINNY_CODEC_NONE};
 			iPbx.set_nativeVideoFormats(channel, codecs);
@@ -404,8 +405,10 @@ static void sccp_channel_recalculateVideoCodecFormat(sccp_channel_t * channel)
 	if (channel->rtp.video.receiveChannelState == SCCP_RTP_STATUS_INACTIVE) {
 		if (SKINNY_CODEC_NONE == joint) {
 			channel->videomode = SCCP_VIDEO_MODE_OFF;
-			channel->rtp.video.writeFormat = joint;
-			channel->rtp.video.readFormat = joint;
+			channel->rtp.video.writeFormat = SKINNY_CODEC_NONE;
+			channel->rtp.video.readFormat = SKINNY_CODEC_NONE;
+			iPbx.rtp_setWriteFormat(channel, SKINNY_CODEC_NONE);
+			iPbx.rtp_setReadFormat(channel, SKINNY_CODEC_NONE);
 		} else {
 			channel->rtp.video.writeFormat = joint;
 			channel->rtp.video.readFormat = joint;
